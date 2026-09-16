@@ -11,30 +11,32 @@ export default function Footer() {
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M9 3h6l1 4h-8l1-4Zm-2 5h10l2 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L7 8Z"
-                    stroke="#fff"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <span className="font-heading text-lg font-bold text-white">
-                {COMPANY.name}
-              </span>
+              <Link href="/" className="inline-flex items-center bg-white px-3.5 py-1.5 rounded-xl shadow-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={COMPANY.logo}
+                  alt={COMPANY.name}
+                  className="h-8 w-auto object-contain"
+                />
+              </Link>
             </div>
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/55">
+            <p className="mt-5 max-w-xs text-sm leading-relaxed text-white/60">
               Reliable industrial, agro and specialty chemical supply — built on
-              purity, documentation and on-time delivery.
+              purity, documentation and on-time bulk delivery.
             </p>
             <div className="mt-6 flex gap-3">
-              {[Facebook, Instagram, Linkedin].map((Icon, i) => (
+              {[
+                { Icon: Facebook, href: COMPANY.social.facebook, label: "Facebook" },
+                { Icon: Instagram, href: COMPANY.social.instagram, label: "Instagram" },
+                { Icon: Linkedin, href: COMPANY.social.linkedin, label: "LinkedIn" },
+              ].map(({ Icon, href, label }, i) => (
                 <a
                   key={i}
-                  href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-brand-red"
+                  href={href}
+                  aria-label={label}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-brand-red text-white"
                 >
                   <Icon size={15} />
                 </a>
@@ -49,6 +51,7 @@ export default function Footer() {
               <li><Link href="/about" className="hover:text-brand-red">About</Link></li>
               <li><Link href="/products" className="hover:text-brand-red">Products</Link></li>
               <li><Link href="/services" className="hover:text-brand-red">Services</Link></li>
+              <li><Link href="/reviews" className="hover:text-brand-red">Customer Reviews</Link></li>
               <li><Link href="/blog" className="hover:text-brand-red">Blog</Link></li>
               <li><Link href="/contact" className="hover:text-brand-red">Contact</Link></li>
             </ul>

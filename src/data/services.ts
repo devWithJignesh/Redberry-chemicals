@@ -2,31 +2,31 @@ import { Service } from "@/types";
 
 export const SERVICES: Service[] = [
   {
-    slug: "bulk-supply",
-    title: "Bulk Supply",
+    slug: "crop-protection",
+    title: "Crop Protection",
     description:
-      "Reliable bulk sourcing and supply of industrial, agro and specialty chemicals with consistent lead times.",
-    icon: "Truck",
-  },
-  {
-    slug: "custom-formulation",
-    title: "Custom Sourcing",
-    description:
-      "Need a specific grade or blend? We coordinate custom formulations and niche chemical sourcing on request.",
-    icon: "FlaskConical",
-  },
-  {
-    slug: "quality-testing",
-    title: "Quality Assurance",
-    description:
-      "Every batch is verified against lab specifications before dispatch, with SDS and COA documentation provided.",
+      "Insecticides, fungicides and herbicide intermediates sourced and verified for consistent crop-protection performance.",
     icon: "ShieldCheck",
   },
   {
-    slug: "logistics",
-    title: "Logistics & Distribution",
+    slug: "fertilizer-supply",
+    title: "Fertilizer & Nutrition",
     description:
-      "Dependable delivery across Gujarat and neighbouring states, with safe handling for hazardous-grade materials.",
+      "Fertilizer-grade chemical intermediates and PGR nutrition products for blending, manufacturing and distribution.",
+    icon: "Sprout",
+  },
+  {
+    slug: "custom-formulation",
+    title: "Custom Formulations",
+    description:
+      "Need a specific grade or blend? We coordinate custom agro-chemical and industrial formulations on request.",
+    icon: "FlaskConical",
+  },
+  {
+    slug: "quality-logistics",
+    title: "Quality & Logistics",
+    description:
+      "Every batch is lab-verified with COA/SDS documentation. Reliable delivery across Gujarat and 15+ states.",
     icon: "PackageCheck",
   },
 ];

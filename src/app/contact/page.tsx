@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Container from "@/components/common/Container";
 import { COMPANY } from "@/constants";
+import CustomerReviewsSection from "@/components/common/CustomerReviewsSection";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import ContactForm from "./ContactForm";
 
@@ -70,13 +71,16 @@ export default function ContactPage() {
                   style={{ border: 0 }}
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Redberry Chemicals location"
+                  title={`${COMPANY.name} location`}
                 />
               </div>
             </div>
           </div>
         </Container>
       </section>
+
+      {/* Customer Reviews Slider */}
+      <CustomerReviewsSection />
     </>
   );
 }

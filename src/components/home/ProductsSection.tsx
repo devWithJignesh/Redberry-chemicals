@@ -10,12 +10,12 @@ export default function ProductsSection() {
       <Container>
         <div className="mb-14 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <SectionTitle
-            eyebrow="Our Products"
-            title="Everything Your Facility Needs"
-            description="Industrial, agro, specialty and water-treatment grade chemicals — sourced and verified for consistency."
+            eyebrow="Agro & Industrial Formulations"
+            title="Precision Chemical Solutions for Field & Facility"
+            description="From crop-protection insecticides and 100% water-soluble fertilizers to specialized agro-intermediates and water treatment."
           />
           <LinkButton href="/products" variant="outline" className="shrink-0">
-            View All Products
+            View All 20+ Products
           </LinkButton>
         </div>
         <ProductGrid products={PRODUCTS} />

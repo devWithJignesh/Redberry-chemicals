@@ -4,16 +4,17 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
   {
-    label: "Products",
-    href: "/products",
+    label: "Product",
+    href: "/products/insecticides",
     children: [
-      { label: "Industrial Chemicals", href: "/products/industrial-chemicals" },
-      { label: "Agro Chemicals", href: "/products/agro-chemicals" },
-      { label: "Specialty Chemicals", href: "/products/specialty-chemicals" },
-      { label: "Water Treatment Chemicals", href: "/products/water-treatment-chemicals" },
+      { label: "Insecticides", href: "/products/insecticides" },
+      { label: "Fungicides", href: "/products/fungicides" },
+      { label: "Herbicides", href: "/products/herbicides" },
+      { label: "Pgr & Nutrition", href: "/products/pgr-nutrition" },
     ],
   },
   { label: "Services", href: "/services" },
+  { label: "Reviews", href: "/reviews" },
   { label: "Blog", href: "/blog" },
   { label: "Contact", href: "/contact" },
 ];

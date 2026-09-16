@@ -9,7 +9,7 @@ import { ArrowRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: `Blog — ${COMPANY.name}`,
-  description: "Insights on chemical supply, sourcing and industry best practices from Redberry Chemicals.",
+  description: `Insights on chemical supply, sourcing and industry best practices from ${COMPANY.name}.`,
 };
 
 export default function BlogPage() {
@@ -38,10 +38,16 @@ export default function BlogPage() {
                 href={`/blog/${post.slug}`}
                 className="group overflow-hidden rounded-2xl bg-white shadow-soft transition-shadow hover:shadow-card"
               >
-                <div className="h-44 bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark">
-                  <div className="flex h-full items-center justify-center text-xs text-white/50">
-                    Photo: Article cover
-                  </div>
+                <div className="relative h-44 overflow-hidden bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark">
+                  {post.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={post.image}
+                      alt={post.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  )}
                 </div>
                 <div className="p-6">
                   <div className="mb-2 text-xs font-medium text-brand-red">

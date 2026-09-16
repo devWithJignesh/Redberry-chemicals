@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Menu, Phone } from "lucide-react";
 import { NAV_ITEMS } from "@/data/navigation";
@@ -33,51 +34,56 @@ export default function Navbar() {
       >
         <Container>
           <div className="flex h-20 items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-red-light">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M9 3h6l1 4h-8l1-4Zm-2 5h10l2 12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L7 8Z"
-                    stroke="#C41E3A"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div>
-                <div className="font-heading text-lg font-bold leading-tight text-brand-navy">
-                  {COMPANY.name}
-                </div>
-                <div className="text-[11px] text-brand-muted">{COMPANY.tagline}</div>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="relative flex items-center py-1">
+                <Image
+                  src={COMPANY.logo}
+                  alt={COMPANY.name}
+                  width={150}
+                  height={44}
+                  priority
+                  className="h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                />
               </div>
             </Link>
 
             <nav className="hidden items-center gap-8 lg:flex">
               {NAV_ITEMS.map((item) => {
-                const active = pathname === item.href;
+                const active = pathname === item.href || (item.children && item.children.some((c) => pathname === c.href));
                 return (
                   <div key={item.href} className="group relative">
                     <Link
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-1 py-2 text-sm font-medium text-brand-text transition-colors hover:text-brand-red",
-                        active && "text-brand-red"
+                        "relative flex items-center gap-1.5 py-2 text-sm font-semibold tracking-wide transition-colors",
+                        active ? "text-[#EA580C] font-bold" : "text-brand-navy hover:text-[#EA580C]"
                       )}
                     >
                       {item.label}
-                      {item.children && <ChevronDown size={14} />}
+                      {item.children && <ChevronDown size={14} className="transition-transform duration-200 group-hover:rotate-180" />}
+                      {active && (
+                        <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-[#EA580C] rounded-full" />
+                      )}
                     </Link>
                     {item.children && (
-                      <div className="invisible absolute left-1/2 top-full w-64 -translate-x-1/2 translate-y-2 rounded-xl border border-black/5 bg-white p-2 opacity-0 shadow-card transition-all duration-200 group-hover:visible group-hover:translate-y-1 group-hover:opacity-100">
-                        {item.children.map((child) => (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            className="block rounded-lg px-4 py-3 text-sm text-brand-text hover:bg-brand-red-light hover:text-brand-red"
-                          >
-                            {child.label}
-                          </Link>
-                        ))}
+                      <div className="invisible absolute left-0 top-full w-56 -translate-y-1 rounded-b-xl border border-slate-200/80 bg-white opacity-0 shadow-2xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 z-50 overflow-hidden">
+                        {item.children.map((child, idx) => {
+                          const isChildActive = pathname === child.href || (child.label === "Insecticides" && pathname.includes("insecticide"));
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              className={cn(
+                                "block px-5 py-3 text-sm font-medium transition-colors border-b border-slate-100 last:border-0",
+                                isChildActive
+                                  ? "bg-[#EA580C] text-white font-semibold"
+                                  : "text-slate-700 hover:bg-orange-50 hover:text-[#EA580C]"
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

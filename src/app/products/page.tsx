@@ -4,11 +4,12 @@ import SectionTitle from "@/components/common/SectionTitle";
 import ProductGrid from "@/components/product/ProductGrid";
 import { PRODUCTS } from "@/data/products";
 import { COMPANY } from "@/constants";
+import CustomerReviewsSection from "@/components/common/CustomerReviewsSection";
 
 export const metadata: Metadata = {
   title: `Products — ${COMPANY.name}`,
   description:
-    "Browse industrial, agro, specialty and water-treatment chemicals supplied by Redberry Chemicals.",
+    `Browse industrial, agro, specialty and water-treatment chemicals supplied by ${COMPANY.name}.`,
 };
 
 export default function ProductsPage() {
@@ -38,6 +39,9 @@ export default function ProductsPage() {
           <ProductGrid products={PRODUCTS} />
         </Container>
       </section>
+
+      {/* Customer Reviews Slider */}
+      <CustomerReviewsSection />
     </>
   );
 }

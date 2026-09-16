@@ -5,10 +5,11 @@ import SectionTitle from "@/components/common/SectionTitle";
 import { LinkButton } from "@/components/common/Button";
 import { SERVICES } from "@/data/services";
 import { COMPANY } from "@/constants";
+import CustomerReviewsSection from "@/components/common/CustomerReviewsSection";
 
 export const metadata: Metadata = {
   title: `Services — ${COMPANY.name}`,
-  description: "Bulk supply, custom sourcing, quality assurance and logistics services from Redberry Chemicals.",
+  description: `Bulk supply, custom sourcing, quality assurance and logistics services from ${COMPANY.name}.`,
 };
 
 export default function ServicesPage() {
@@ -63,6 +64,9 @@ export default function ServicesPage() {
           </div>
         </Container>
       </section>
+
+      {/* Customer Reviews Slider */}
+      <CustomerReviewsSection />
     </>
   );
 }

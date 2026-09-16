@@ -32,9 +32,14 @@ export default function MobileMenu({
             className="fixed inset-y-0 right-0 z-50 flex w-[85%] max-w-sm flex-col bg-white p-7 shadow-2xl lg:hidden"
           >
             <div className="mb-8 flex items-center justify-between">
-              <span className="font-heading text-lg font-bold text-brand-navy">
-                {COMPANY.name}
-              </span>
+              <Link href="/" onClick={onClose}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={COMPANY.logo}
+                  alt={COMPANY.name}
+                  className="h-9 w-auto object-contain"
+                />
+              </Link>
               <button
                 onClick={onClose}
                 aria-label="Close menu"

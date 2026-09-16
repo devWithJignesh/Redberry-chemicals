@@ -30,10 +30,17 @@ export default function ProductCard({
       <div
         className={`relative h-52 overflow-hidden bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]}`}
       >
-        <div className="absolute inset-0 flex items-center justify-center text-xs text-white/50 transition-transform duration-500 group-hover:scale-110">
-          Photo: {product.name}
-        </div>
-        <span className="absolute left-4 top-4 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+        {product.image && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image}
+            alt={product.name}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            loading="lazy"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-brand-navy/20 to-transparent" />
+        <span className="absolute left-4 top-4 rounded-full bg-brand-navy/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur border border-white/20">
           {product.category}
         </span>
       </div>

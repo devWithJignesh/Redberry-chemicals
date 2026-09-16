@@ -26,14 +26,13 @@ export default function ContactSection() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="font-heading text-3xl font-bold text-white md:text-4xl">
-              Let's Talk Supply.
+              Let's Talk Agro & Chemical Supply.
             </h2>
             <p className="mt-4 max-w-md text-white/80">
-              Whether it's a one-time bulk order or an ongoing contract, our
-              team responds fast with pricing and availability.
+              Looking for seasonal pesticide delivery, bulk fertilizer intermediates, or custom agricultural blends? Our team responds within hours with pricing and batch COA.
             </p>
             <LinkButton href="/contact" variant="outline-light" className="mt-8" showArrow={false}>
-              Contact Us →
+              Get Agro Quote & Dosage Advice →
             </LinkButton>
           </motion.div>
 

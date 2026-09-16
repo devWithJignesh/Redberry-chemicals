@@ -36,10 +36,15 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 
       <section className="py-20">
         <Container className="max-w-3xl">
-          <div className="mb-10 h-64 rounded-2xl bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark">
-            <div className="flex h-full items-center justify-center text-xs text-white/50">
-              Photo: Article cover
-            </div>
+          <div className="relative mb-10 h-72 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark shadow-soft">
+            {post.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={post.image}
+                alt={post.title}
+                className="h-full w-full object-cover"
+              />
+            )}
           </div>
           <p className="text-base leading-relaxed text-brand-text">{post.content}</p>
 

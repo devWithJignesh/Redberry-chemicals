@@ -17,6 +17,18 @@ export interface Product {
   description: string;
   image: string;
   features: string[];
+  // Agrochemical specifications
+  technicalName?: string;
+  formulation?: string;
+  chemicalGroup?: string;
+  targetPests?: string;
+  recommendedCrops?: string;
+  dosage?: string;
+  packagingSizes?: string[];
+  modeOfAction?: string;
+  antidote?: string;
+  safetyPrecautions?: string[];
+  specifications?: { label: string; value: string }[];
 }
 
 export interface Service {

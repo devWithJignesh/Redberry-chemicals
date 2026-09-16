@@ -2,26 +2,23 @@ import type { Metadata } from "next";
 import Container from "@/components/common/Container";
 import SectionTitle from "@/components/common/SectionTitle";
 import { LinkButton } from "@/components/common/Button";
-import { CheckCircle2, Target, Eye, ShieldCheck } from "lucide-react";
 import { COMPANY } from "@/constants";
+import LeadershipSection from "@/components/common/LeadershipSection";
+import CustomerReviewsSection from "@/components/common/CustomerReviewsSection";
+import AboutSection from "@/components/home/AboutSection";
+import AgriSolutionsSection from "@/components/home/AgriSolutionsSection";
 
 export const metadata: Metadata = {
   title: `About Us — ${COMPANY.name}`,
   description:
-    "Learn about Redberry Chemicals — our story, our values, and the team behind reliable chemical supply.",
+    `Learn about ${COMPANY.name} (Est. 2020) — our story, our leadership, our values, and the team behind reliable agricultural chemistry.`,
 };
 
-const VALUES = [
-  { icon: ShieldCheck, title: "Integrity", desc: "Honest pricing and honest documentation, every time." },
-  { icon: Target, title: "Consistency", desc: "The same verified quality, batch after batch." },
-  { icon: Eye, title: "Transparency", desc: "Clear SDS, COA and sourcing information on request." },
-];
-
 const TIMELINE = [
-  { year: "2014", title: "Founded in Anand", text: "Started as a small chemical trading outfit serving local units." },
-  { year: "2018", title: "Expanded Product Range", text: "Added agro and specialty chemical categories." },
-  { year: "2021", title: "300+ Business Partners", text: "Grew into a trusted regional supply partner." },
-  { year: "2026", title: "15+ States Served", text: "Now supplying industrial and agro clients across India." },
+  { year: "2020", title: "Founded in Anand & Ahmedabad", text: "Established Redberry Agri Sciences Pvt Ltd by our 3 executive directors with a focused mission to deliver high-yield crop protection and pure agrochemical inputs." },
+  { year: "2022", title: "CIB-Compliant Formulations", text: "Expanded into broad-spectrum pesticide intermediates, 100% water-soluble NPK fertilizers, and organic bio-stimulants." },
+  { year: "2024", title: "300+ Agri Dealers & Growers", text: "Developed strong institutional partnerships and retail dealership networks across Gujarat and western India." },
+  { year: "2026", title: "15+ States & Growing Continously", text: "Supplying certified agrochemicals, customized formulations, and dedicated agronomy support nationwide." },
 ];
 
 export default function AboutPage() {
@@ -38,71 +35,24 @@ export default function AboutPage() {
             About {COMPANY.name}
           </h1>
           <p className="mt-4 max-w-xl text-white/75">
-            A decade of dependable chemical supply, built on purity and trust.
+            Established in 2020 — Driving sustainable agricultural productivity and farmer prosperity across India.
           </p>
         </Container>
       </section>
 
-      {/* Story */}
-      <section className="py-24">
-        <Container>
-          <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
-            <div className="aspect-[4/5] rounded-3xl bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark shadow-card">
-              <div className="flex h-full w-full items-center justify-center text-xs text-white/50">
-                Photo: Facility / warehouse
-              </div>
-            </div>
-            <div>
-              <SectionTitle eyebrow="Our Story" title="Rooted in Reliability" />
-              <p className="mt-5 text-base leading-relaxed text-brand-muted">
-                Redberry Chemicals was founded on a simple idea: chemical
-                buyers deserve a supplier they don't have to double-check.
-                From our base in Anand, Gujarat, we now serve manufacturers,
-                distributors and treatment plants with industrial, agro,
-                specialty and water-treatment grade chemicals.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {["Lab-verified purity", "Transparent documentation", "Dependable bulk delivery"].map((t) => (
-                  <li key={t} className="flex items-center gap-3 text-sm font-medium text-brand-text">
-                    <CheckCircle2 size={18} className="text-brand-red" /> {t}
-                  </li>
-                ))}
-              </ul>
-              <LinkButton href="/contact" className="mt-8">
-                Work With Us
-              </LinkButton>
-            </div>
-          </div>
-        </Container>
-      </section>
+      {/* Story with Left Side Video Player & Overlapping Organic Image Slider */}
+      <AboutSection />
 
-      {/* Values */}
-      <section className="bg-brand-cream py-24">
-        <Container>
-          <SectionTitle
-            center
-            eyebrow="What We Stand For"
-            title="Our Core Values"
-            className="mx-auto mb-14"
-          />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {VALUES.map((v) => (
-              <div key={v.title} className="rounded-2xl bg-white p-8 text-center shadow-soft transition-transform hover:-translate-y-2">
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-red-light text-brand-red">
-                  <v.icon size={24} />
-                </div>
-                <h3 className="mb-2 font-heading text-lg font-semibold text-brand-navy">{v.title}</h3>
-                <p className="text-sm text-brand-muted">{v.desc}</p>
-              </div>
-            ))}
-          </div>
-        </Container>
-      </section>
+      {/* ─── Executive Leadership (3 Owners) ─── */}
+      <LeadershipSection />
 
-      {/* Timeline */}
-      <section className="py-24">
+      {/* Values: 9 Core Pillars */}
+      <AgriSolutionsSection />
+
+      {/* Timeline: Since 2020 */}
+      <section className="py-24 bg-white">
         <Container className="max-w-3xl">
-          <SectionTitle eyebrow="Our Journey" title="Milestones" className="mb-14" />
+          <SectionTitle eyebrow="Our Journey" title="Milestones Since 2020" className="mb-14" />
           <div className="space-y-10 border-l-2 border-brand-red-light pl-8">
             {TIMELINE.map((item) => (
               <div key={item.year} className="relative">
@@ -115,6 +65,9 @@ export default function AboutPage() {
           </div>
         </Container>
       </section>
+
+      {/* Customer Reviews Slider */}
+      <CustomerReviewsSection />
     </>
   );
 }

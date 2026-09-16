@@ -1,6 +1,7 @@
 import { Product } from "@/types";
+import { INSECTICIDES } from "./insecticides";
 
-export const PRODUCTS: Product[] = [
+export const CATEGORY_PRODUCTS: Product[] = [
   {
     slug: "industrial-chemicals",
     name: "Industrial Chemicals",
@@ -9,7 +10,7 @@ export const PRODUCTS: Product[] = [
       "Bulk industrial-grade chemicals for manufacturing, textiles and processing units.",
     description:
       "Our industrial chemicals range is sourced and tested to consistent purity standards, supplying manufacturing, textile and processing units with dependable bulk quantities and on-time delivery.",
-    image: "/images/products/industrial-chemicals.jpg",
+    image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80",
     features: [
       "Consistent, lab-verified purity",
       "Bulk & drum quantities available",
@@ -25,7 +26,7 @@ export const PRODUCTS: Product[] = [
       "Fertilizer intermediates and crop-input chemicals for the agriculture sector.",
     description:
       "We supply agro-chemical intermediates and crop-input formulations used in fertilizer blending and crop protection, helping regional distributors and manufacturers maintain steady supply.",
-    image: "/images/products/agro-chemicals.jpg",
+    image: "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1000&q=80",
     features: [
       "Fertilizer-grade intermediates",
       "Consistent seasonal supply",
@@ -41,7 +42,7 @@ export const PRODUCTS: Product[] = [
       "Custom and specialty formulations for niche industrial applications.",
     description:
       "For applications that need a specific grade or formulation, our specialty chemicals division sources and coordinates custom quantities with detailed technical support.",
-    image: "/images/products/specialty-chemicals.jpg",
+    image: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=1000&q=80",
     features: [
       "Custom grade sourcing",
       "Small to mid-batch quantities",
@@ -57,7 +58,7 @@ export const PRODUCTS: Product[] = [
       "Coagulants, flocculants and treatment chemicals for water & effluent plants.",
     description:
       "Our water treatment range covers coagulants, flocculants and pH-correction chemicals used by municipal and industrial effluent treatment plants across the region.",
-    image: "/images/products/water-treatment-chemicals.jpg",
+    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=80",
     features: [
       "ETP & STP compatible grades",
       "Bulk supply contracts available",
@@ -67,6 +68,9 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+export const PRODUCTS: Product[] = [...INSECTICIDES, ...CATEGORY_PRODUCTS];
+
 export function getProductBySlug(slug: string): Product | undefined {
   return PRODUCTS.find((p) => p.slug === slug);
 }
+
