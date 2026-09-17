@@ -10,7 +10,7 @@ export const CATEGORY_PRODUCTS: Product[] = [
       "Bulk industrial-grade chemicals for manufacturing, textiles and processing units.",
     description:
       "Our industrial chemicals range is sourced and tested to consistent purity standards, supplying manufacturing, textile and processing units with dependable bulk quantities and on-time delivery.",
-    image: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80",
+    image: "/images/products/premium_dummy.jpg",
     features: [
       "Consistent, lab-verified purity",
       "Bulk & drum quantities available",
@@ -26,7 +26,7 @@ export const CATEGORY_PRODUCTS: Product[] = [
       "Fertilizer intermediates and crop-input chemicals for the agriculture sector.",
     description:
       "We supply agro-chemical intermediates and crop-input formulations used in fertilizer blending and crop protection, helping regional distributors and manufacturers maintain steady supply.",
-    image: "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1000&q=80",
+    image: "/images/products/premium_dummy.jpg",
     features: [
       "Fertilizer-grade intermediates",
       "Consistent seasonal supply",
@@ -42,7 +42,7 @@ export const CATEGORY_PRODUCTS: Product[] = [
       "Custom and specialty formulations for niche industrial applications.",
     description:
       "For applications that need a specific grade or formulation, our specialty chemicals division sources and coordinates custom quantities with detailed technical support.",
-    image: "https://images.unsplash.com/photo-1581093588401-fbb62a02f120?auto=format&fit=crop&w=1000&q=80",
+    image: "/images/products/premium_dummy.jpg",
     features: [
       "Custom grade sourcing",
       "Small to mid-batch quantities",
@@ -58,7 +58,7 @@ export const CATEGORY_PRODUCTS: Product[] = [
       "Coagulants, flocculants and treatment chemicals for water & effluent plants.",
     description:
       "Our water treatment range covers coagulants, flocculants and pH-correction chemicals used by municipal and industrial effluent treatment plants across the region.",
-    image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=80",
+    image: "/images/products/premium_dummy.jpg",
     features: [
       "ETP & STP compatible grades",
       "Bulk supply contracts available",

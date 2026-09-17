@@ -18,7 +18,7 @@ export default function ProductsSection() {
             View All 20+ Products
           </LinkButton>
         </div>
-        <ProductGrid products={PRODUCTS} />
+        <ProductGrid products={PRODUCTS.slice(0, 4)} />
       </Container>
     </section>
   );

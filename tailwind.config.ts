@@ -21,8 +21,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        heading: ["Poppins", "ui-sans-serif", "sans-serif"],
-        body: ["Inter", "ui-sans-serif", "sans-serif"],
+        sans: ["'Varela Round'", "ui-sans-serif", "sans-serif"],
+        heading: ["'Varela Round'", "ui-sans-serif", "sans-serif"],
+        body: ["'Varela Round'", "ui-sans-serif", "sans-serif"],
       },
       keyframes: {
         "fade-up": {
