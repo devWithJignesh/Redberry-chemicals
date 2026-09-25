@@ -1,0 +1,69 @@
+/* ============================================
+   SECTION: Common → Interactive Custom Cursor
+   FILE: components/common/CustomCursor/CustomCursor.css
+   ============================================ */
+
+.custom-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-lime);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.2s ease, transform 0.1s ease-out;
+  box-shadow: 0 0 10px var(--color-lime);
+}
+
+.custom-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(34, 197, 94, 0.6);
+  background-color: rgba(34, 197, 94, 0.04);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.25s ease,
+              border-color 0.25s ease,
+              opacity 0.2s ease;
+  backdrop-filter: blur(1px);
+}
+
+/* Hover State on Interactive Elements */
+.custom-cursor-ring.is-hovering {
+  width: 58px;
+  height: 58px;
+  border-color: var(--color-accent);
+  background-color: rgba(234, 179, 8, 0.12);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.35);
+}
+
+.custom-cursor-dot.is-hovering {
+  background-color: var(--color-accent);
+  transform: translate(-50%, -50%) scale(1.4);
+  box-shadow: 0 0 12px var(--color-accent);
+}
+
+/* Click Active State */
+.custom-cursor-ring.is-clicking {
+  transform: translate(-50%, -50%) scale(0.85);
+  border-color: var(--color-leaf);
+  background-color: rgba(34, 197, 94, 0.25);
+}
+
+/* Hide on Touch / Mobile Devices */
+@media (hover: none) and (pointer: coarse) {
+  .custom-cursor-dot,
+  .custom-cursor-ring {
+    display: none !important;
+  }
+}

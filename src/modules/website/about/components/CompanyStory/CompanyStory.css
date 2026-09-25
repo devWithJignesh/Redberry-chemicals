@@ -1,0 +1,156 @@
+/* ============================================
+   SECTION: About Page → Company Story Section
+   FILE: modules/website/about/components/CompanyStory/CompanyStory.css
+   ============================================ */
+
+.company-story-section {
+  background-color: #ffffff;
+  position: relative;
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--space-12);
+  align-items: center;
+  margin-bottom: var(--space-16);
+}
+
+.story-badge {
+  display: inline-block;
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-accent);
+  padding: 0.35rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-4);
+}
+
+.story-title {
+  font-size: clamp(1.85rem, 3.5vw, 2.75rem);
+  color: var(--color-primary-dark);
+  margin-bottom: var(--space-6);
+}
+
+.story-text-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  line-height: 1.7;
+}
+
+.story-image-wrap {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-border);
+}
+
+.story-image {
+  width: 100%;
+  height: 400px;
+  object-fit: cover;
+}
+
+/* Timeline Milestones */
+.story-milestones-wrap {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-12);
+}
+
+.milestones-title {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-heading);
+  text-align: center;
+  margin-bottom: var(--space-10);
+}
+
+.milestones-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6);
+  position: relative;
+}
+
+.milestone-card {
+  background: var(--color-bg-main);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.milestone-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
+}
+
+.milestone-year {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+}
+
+.milestone-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-2);
+}
+
+.milestone-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* --------------------------------------------
+   Responsive Breakpoints
+   -------------------------------------------- */
+@media (max-width: 900px) {
+  .story-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+    margin-bottom: var(--space-10);
+  }
+
+  .story-image {
+    height: 300px;
+  }
+
+  .milestones-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 540px) {
+  .story-image {
+    height: 220px;
+  }
+
+  .milestones-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .story-text-list {
+    font-size: 0.95rem;
+  }
+
+  .milestone-card {
+    padding: var(--space-4) var(--space-5);
+  }
+}

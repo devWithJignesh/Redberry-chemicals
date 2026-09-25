@@ -1,0 +1,99 @@
+/* ============================================
+   SECTION: Home Page → Core Values Section
+   FILE: modules/website/home/components/CoreValues/CoreValues.css
+   ============================================ */
+
+.core-values-section {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-white);
+  position: relative;
+  overflow: hidden;
+}
+
+.core-values-section::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-8);
+}
+
+.value-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all var(--transition-normal);
+  display: flex;
+  flex-direction: column;
+}
+
+.value-card:hover {
+  transform: translateY(-6px);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--color-leaf);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.value-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: var(--space-5);
+  color: var(--color-lime);
+}
+
+.value-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-text-white);
+  margin-bottom: var(--space-3);
+}
+
+.value-desc {
+  font-size: var(--font-size-sm);
+  color: #94a3b8;
+  line-height: 1.65;
+}
+
+/* --------------------------------------------
+   Responsive Breakpoints
+   -------------------------------------------- */
+@media (max-width: 960px) {
+  .values-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+@media (max-width: 600px) {
+  .values-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .value-card {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .value-title {
+    font-size: 1.2rem;
+  }
+}

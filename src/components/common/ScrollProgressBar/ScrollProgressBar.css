@@ -1,0 +1,22 @@
+/* ============================================
+   SECTION: Common → Top Viewport Scroll Progress Bar
+   FILE: components/common/ScrollProgressBar/ScrollProgressBar.css
+   ============================================ */
+
+.scroll-progress-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3.5px;
+  background: transparent;
+  z-index: 10001;
+  pointer-events: none;
+}
+
+.scroll-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-light), var(--color-lime), var(--color-accent));
+  box-shadow: 0 0 8px rgba(132, 204, 22, 0.7);
+  transition: width 0.1s ease-out;
+}

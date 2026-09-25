@@ -1,0 +1,252 @@
+/* ============================================
+   GLOBAL STYLES: Master Stylesheet
+   FILE: src/styles/global.css
+   ============================================ */
+
+@import './variables.css';
+@import './reset.css';
+@import './animations.css';
+
+/* --------------------------------------------
+   Common Layout & Container Utilities
+   -------------------------------------------- */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+.section-padding {
+  padding-top: var(--space-20);
+  padding-bottom: var(--space-20);
+}
+
+.section-padding-sm {
+  padding-top: var(--space-12);
+  padding-bottom: var(--space-12);
+}
+
+/* --------------------------------------------
+   Section Header Standard Structure
+   -------------------------------------------- */
+.section-header {
+  text-align: center;
+  max-width: 680px;
+  margin: 0 auto var(--space-16) auto;
+}
+
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.35rem 1rem;
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-4);
+}
+
+.section-badge-dark {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-lime);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.section-title {
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  color: var(--color-text-heading);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.section-title-dark {
+  color: var(--color-text-white);
+}
+
+.section-description {
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.section-description-dark {
+  color: #94a3b8;
+}
+
+/* --------------------------------------------
+   Reusable Interactive Buttons
+   -------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0.85rem 1.75rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  transition: all var(--transition-normal);
+  text-align: center;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+  color: var(--color-text-white);
+  box-shadow: 0 4px 14px 0 var(--color-primary-glow);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-leaf) 0%, var(--color-primary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px 0 var(--color-primary-glow);
+  color: var(--color-text-white);
+}
+
+.btn-secondary {
+  background-color: var(--color-bg-card);
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary-light);
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: var(--color-primary-dark);
+  box-shadow: var(--shadow-gold);
+}
+
+.btn-accent:hover {
+  background: linear-gradient(135deg, #fde047 0%, #ca8a04 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(234, 179, 8, 0.45);
+}
+
+.btn-outline-white {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-white);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(8px);
+}
+
+.btn-outline-white:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: var(--color-text-white);
+  transform: translateY(-2px);
+}
+
+/* --------------------------------------------
+   Glassmorphic & Card Base Classes
+   -------------------------------------------- */
+.glass-card {
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.dark-surface {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-white);
+}
+
+/* --------------------------------------------
+   Custom Scrollbar
+   -------------------------------------------- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-light);
+}
+
+/* --------------------------------------------
+   Responsive Utilities
+   -------------------------------------------- */
+@media (max-width: 768px) {
+  .section-padding {
+    padding-top: var(--space-12);
+    padding-bottom: var(--space-12);
+  }
+
+  .section-padding-sm {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+  
+  .container {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .section-header {
+    margin-bottom: var(--space-8);
+  }
+
+  .section-title {
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
+  }
+
+  .section-description {
+    font-size: var(--font-size-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+
+  .btn {
+    padding: 0.75rem 1.25rem;
+    font-size: var(--font-size-sm);
+    min-height: 44px; /* Optimal touch target */
+  }
+
+  .section-badge {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.7rem;
+    margin-bottom: var(--space-3);
+  }
+}
+
