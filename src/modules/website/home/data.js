@@ -4,10 +4,11 @@
    ============================================ */
 
 export const HERO_DATA = {
-  autoplayIntervalMs: 6000,
+  autoplayIntervalMs: 3000,
   slides: [
     {
       id: 1,
+      video: "/images/hero/mixkit-tractor-in-a-wheat-field-at-sunset-done-in-cgi-34035-hd-ready.mp4",
       image: "/images/hero/slide-1.jpg",
       headline: "500+ Dealers. One\nFarmer-First Mission.",
       subtext:
@@ -17,6 +18,7 @@ export const HERO_DATA = {
     },
     {
       id: 2,
+      video: "/images/hero/mixkit-grass-growing-time-lapse-15959-hd-ready.mp4",
       image: "/images/hero/slide-2.jpg",
       headline: "Rooted in Science,\nGrowing Trust.",
       subtext:

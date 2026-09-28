@@ -5,9 +5,9 @@ import './Hero.css';
 export default function Hero({ data }) {
   const { slides = [], autoplayIntervalMs = 6000 } = data;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
   const progressRef = useRef(null);
+  const videoRefs = useRef({});
 
   const totalSlides = slides.length;
 
@@ -40,16 +40,35 @@ export default function Hero({ data }) {
     }
   };
 
-  // Autoplay timer with pause on hover / touch
+  // Play video for active slide and pause others
   useEffect(() => {
-    if (isPaused || totalSlides <= 1) return;
+    Object.entries(videoRefs.current).forEach(([idxStr, vidEl]) => {
+      const idx = Number(idxStr);
+      if (!vidEl) return;
+      if (idx === activeIndex) {
+        vidEl.currentTime = 0;
+        const playPromise = vidEl.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Autoplay might be restricted in some browsers, muted attribute handles this
+          });
+        }
+      } else {
+        vidEl.pause();
+      }
+    });
+  }, [activeIndex]);
+
+  // Autoplay timer — always runs
+  useEffect(() => {
+    if (totalSlides <= 1) return;
 
     const timer = setInterval(() => {
       nextSlide();
     }, autoplayIntervalMs);
 
     return () => clearInterval(timer);
-  }, [isPaused, totalSlides, autoplayIntervalMs, nextSlide]);
+  }, [totalSlides, autoplayIntervalMs, nextSlide]);
 
   if (totalSlides === 0) return null;
 
@@ -61,12 +80,8 @@ export default function Hero({ data }) {
     <section
       className="hero-section"
       aria-label="Full-Page Hero Slider"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
     >
-      {/* ─── Background Image Slider with Ken Burns ─── */}
+      {/* ─── Background Video / Image Slider ─── */}
       <div className="hero-slider" aria-hidden="true">
         {slides.map((slide, index) => {
           const isActive = index === activeIndex;
@@ -74,10 +89,31 @@ export default function Hero({ data }) {
             <div
               key={slide.id || index}
               className={`hero-slide ${isActive ? 'active' : ''}`}
-              style={{
-                backgroundImage: `url(${slide.image})`,
-              }}
-            />
+            >
+              {slide.video ? (
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current[index] = el;
+                  }}
+                  className="hero-slide-media hero-slide-video"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  poster={slide.image}
+                  preload="auto"
+                >
+                  <source src={slide.video} type="video/mp4" />
+                </video>
+              ) : (
+                <div
+                  className="hero-slide-media hero-slide-image"
+                  style={{
+                    backgroundImage: `url(${slide.image})`,
+                  }}
+                />
+              )}
+            </div>
           );
         })}
       </div>
