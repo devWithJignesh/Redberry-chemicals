@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
+import PageHeroBanner from '../../../components/PageHeroBanner/PageHeroBanner';
 import ProductGrid from './components/ProductGrid/ProductGrid';
+import VideoShowcase from '../../../components/common/VideoShowcase/VideoShowcase';
+import MediaGallery from '../../../components/common/MediaGallery/MediaGallery';
 import { PRODUCTS_CATEGORIES_DATA, PRODUCTS_PAGE_HEADER } from './data';
+import { PAGE_VIDEOS } from '../../../data/videos';
 import { scrollToTop } from '../../../utils/helpers';
 
 export default function Products() {
@@ -12,16 +16,17 @@ export default function Products() {
 
   return (
     <div className="products-page">
-      {/* Products Page Header */}
-      <section className="section-padding-sm" style={{ backgroundColor: '#ffffff', borderBottom: '1px solid var(--color-border)' }}>
-        <div className="container">
-          <div className="section-header" style={{ marginBottom: 0 }}>
-            <span className="section-badge">{PRODUCTS_PAGE_HEADER.badge}</span>
-            <h1 className="section-title">{PRODUCTS_PAGE_HEADER.title}</h1>
-            <p className="section-description">{PRODUCTS_PAGE_HEADER.subtitle}</p>
-          </div>
-        </div>
-      </section>
+      {/* Products Video Page Hero */}
+      <PageHeroBanner
+        badge={PRODUCTS_PAGE_HEADER.badge || "OUR CROP CARE PORTFOLIO"}
+        title={PRODUCTS_PAGE_HEADER.title || "Targeted Solutions for Every Crop Stage"}
+        subtitle={PRODUCTS_PAGE_HEADER.subtitle || "Browse our comprehensive range of high-performance agrochemicals formulated for Indian soil and climatic conditions."}
+        videoSrc={PAGE_VIDEOS.products.heroVideo}
+        imageSrc={PAGE_VIDEOS.products.heroPoster}
+        breadcrumbs={[{ label: 'Products' }]}
+        primaryCta={{ label: 'Become a Distributor', href: '/contact' }}
+        secondaryCta={{ label: 'About Redberry', href: '/about' }}
+      />
 
       {/* Main Catalog View */}
       <section className="section-padding" style={{ backgroundColor: 'var(--color-bg-main)' }}>
@@ -33,6 +38,26 @@ export default function Products() {
           />
         </div>
       </section>
+
+      {/* Field Video Feature Section */}
+      <VideoShowcase
+        badge="Field Application Video"
+        title="Scientific Formulation at Work"
+        subtitle="Watch how Redberry bio-active formulations deliver targeted pest knockdown while safeguarding crop health."
+        videoSrc={PAGE_VIDEOS.products.showcaseVideo}
+        posterImage={PAGE_VIDEOS.products.showcasePoster}
+        ctaText="Get Custom Product Recommendation"
+        ctaLink="/contact"
+        contactLink="/about"
+      />
+
+      {/* Category Video & Image Gallery */}
+      <MediaGallery
+        badge="Formulation Demonstrations"
+        title="Explore Products in the Field"
+        subtitle="Detailed video insights and field application results across our product portfolio."
+        items={PAGE_VIDEOS.galleryVideos}
+      />
     </div>
   );
 }

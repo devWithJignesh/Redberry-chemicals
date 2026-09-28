@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
+import PageHeroBanner from '../../../components/PageHeroBanner/PageHeroBanner';
 import ContactForm from './components/ContactForm/ContactForm';
+import VideoShowcase from '../../../components/common/VideoShowcase/VideoShowcase';
 import { COMPANY } from '../../../data/company';
 import { CONTACT_PAGE_HEADER, CONTACT_CARDS_DATA } from './data';
+import { PAGE_VIDEOS } from '../../../data/videos';
 import { scrollToTop } from '../../../utils/helpers';
 import './Contact.css';
 
@@ -31,22 +34,17 @@ export default function Contact() {
 
   return (
     <div className="contact-page">
-      {/* Page Header */}
-      <section
-        className="section-padding-sm"
-        style={{
-          backgroundColor: '#ffffff',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <div className="container">
-          <div className="section-header" style={{ marginBottom: 0 }}>
-            <span className="section-badge">{CONTACT_PAGE_HEADER.badge}</span>
-            <h1 className="section-title">{CONTACT_PAGE_HEADER.title}</h1>
-            <p className="section-description">{CONTACT_PAGE_HEADER.subtitle}</p>
-          </div>
-        </div>
-      </section>
+      {/* Video Page Hero Header */}
+      <PageHeroBanner
+        badge={CONTACT_PAGE_HEADER.badge || "GET IN TOUCH"}
+        title={CONTACT_PAGE_HEADER.title || "Partner With Redberry Agri Sciences"}
+        subtitle={CONTACT_PAGE_HEADER.subtitle || "Have questions about our crop protection products or distribution network? Our technical agronomy team is here to assist."}
+        videoSrc={PAGE_VIDEOS.contact.heroVideo}
+        imageSrc={PAGE_VIDEOS.contact.heroPoster}
+        breadcrumbs={[{ label: 'Contact Us' }]}
+        primaryCta={{ label: `Call Hotline (${COMPANY.phone})`, href: COMPANY.phoneHref }}
+        secondaryCta={{ label: 'Explore Products', href: '/products' }}
+      />
 
       {/* Main Contact Split & Cards */}
       <section
@@ -134,7 +132,18 @@ export default function Contact() {
           </div>
         </div>
       </section>
+
+      {/* Video Hotline Showcase */}
+      <VideoShowcase
+        badge="Direct Dealer & Distributor Inquiry"
+        title="Join Our 500+ Dealer Network Across India"
+        subtitle="Watch how Redberry builds long-term partnerships with agrochemical dealers, providing high-margin formulations, field support, and marketing collateral."
+        videoSrc={PAGE_VIDEOS.contact.showcaseVideo}
+        posterImage={PAGE_VIDEOS.contact.showcasePoster}
+        ctaText="Call Support Now"
+        ctaLink={COMPANY.phoneHref}
+        contactLink="/products"
+      />
     </div>
   );
 }
-
