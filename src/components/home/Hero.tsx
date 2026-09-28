@@ -34,8 +34,7 @@ const SLIDES: HeroSlideWithVideo[] = [
   {
     eyebrow: "Pesticides • Fertilizers • Soil Vitality",
     title: "Growing Greener Yields\nFor Every Season.",
-    description:
-      "From pre-sowing seed protection and foliar micronutrients to pre-harvest pest shields and drip-irrigation nutrition, Redberry fuels agricultural prosperity.",
+    description: "From pre-sowing seed protection and foliar micronutrients to pre-harvest pest shields and drip-irrigation nutrition, Redberry fuels agricultural prosperity.",
     video: "/videos/Create_a_cinematic_realistic.mp4",
     poster: "https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=1920&q=80",
   },
@@ -57,7 +56,7 @@ export default function Hero() {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.play().catch(() => { });
     }
   }, [active]);
 

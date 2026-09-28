@@ -4,34 +4,52 @@
    ============================================ */
 
 export const HERO_DATA = {
-  autoplayIntervalMs: 5000,
+  autoplayIntervalMs: 6000,
   slides: [
     {
       id: 1,
       image: "/images/hero/slide-1.jpg",
-      headline: "Rooted in Science, Growing Trust",
+      headline: "500+ Dealers. One\nFarmer-First Mission.",
+      subtext:
+        "Since 2020, Redberry has built a trusted distribution network delivering quality inputs directly to growers.",
+      ctaLabel: "Get in Touch",
+      ctaHref: "/contact",
+    },
+    {
+      id: 2,
+      image: "/images/hero/slide-2.jpg",
+      headline: "Rooted in Science,\nGrowing Trust.",
       subtext:
         "Redberry Agri Sciences delivers research-driven crop protection and nutrition solutions built for the Indian farmer.",
       ctaLabel: "Explore Products",
       ctaHref: "/products",
     },
     {
-      id: 2,
-      image: "/images/hero/slide-2.jpg",
-      headline: "Protecting Every Field, Every Season",
+      id: 3,
+      image: "/images/hero/slide-3.jpg",
+      headline: "Advanced Crop Care\nYou Can Rely On.",
+      subtext:
+        "Every formulation is verified with rigorous COA & SDS documentation. Trusted by dealers, distributors, and farming estates across India.",
+      ctaLabel: "View Products",
+      ctaHref: "/products",
+    },
+    {
+      id: 4,
+      image: "/images/hero/slide-4.jpg",
+      headline: "Protecting Every Field,\nEvery Season.",
       subtext:
         "Insecticides and fungicides engineered for reliable performance across Gujarat's diverse cropping conditions.",
       ctaLabel: "View Insecticides",
       ctaHref: "/products/insecticides",
     },
     {
-      id: 3,
-      image: "/images/hero/slide-3.jpg",
-      headline: "500+ Dealers. One Farmer-First Mission.",
+      id: 5,
+      image: "/images/hero/slide-5.jpg",
+      headline: "Growing Greener Yields\nFor Every Season.",
       subtext:
-        "Since 2020, Redberry has built a trusted distribution network delivering quality inputs directly to growers.",
-      ctaLabel: "Get in Touch",
-      ctaHref: "/contact",
+        "From pre-sowing seed protection to pre-harvest pest shields and drip-irrigation nutrition, Redberry fuels agricultural prosperity.",
+      ctaLabel: "Explore Solutions",
+      ctaHref: "/products",
     },
   ],
 };

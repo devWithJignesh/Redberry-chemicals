@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import ProductCard from './components/ProductCard/ProductCard';
 import { PRODUCTS_CATEGORIES_DATA } from './data';
 import { scrollToTop } from '../../../utils/helpers';
+import './ProductDetails.css';
 
 export default function ProductDetails() {
   const { category: categoryParam } = useParams();
@@ -10,6 +11,23 @@ export default function ProductDetails() {
   useEffect(() => {
     scrollToTop();
   }, [categoryParam]);
+
+  const getCategoryIcon = (slug) => {
+    switch (slug) {
+      case 'all':
+        return '🌾';
+      case 'insecticides':
+        return '🐛';
+      case 'fungicides':
+        return '🍄';
+      case 'herbicides':
+        return '🌿';
+      case 'pgr-nutrition':
+        return '🧪';
+      default:
+        return '🌱';
+    }
+  };
 
   // Find matching category or default to first
   const categoryData =
@@ -20,57 +38,53 @@ export default function ProductDetails() {
   return (
     <div className="product-details-page">
       {/* Category Hero Banner */}
-      <section
-        className="section-padding-sm"
-        style={{
-          background: 'linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%)',
-          color: 'var(--color-text-white)',
-        }}
-      >
+      <section className="section-padding-sm category-hero-section">
         <div className="container">
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <Link
-              to="/products"
-              style={{
-                color: '#cbd5e1',
-                fontSize: 'var(--font-size-sm)',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              ← Back to All Agrochemicals
-            </Link>
-          </div>
-          <div style={{ maxWidth: '800px' }}>
-            <span
-              className="section-badge section-badge-dark"
-              style={{ marginBottom: 'var(--space-3)' }}
-            >
+          <Link to="/products" className="category-back-link">
+            ← Back to All Agrochemicals
+          </Link>
+          <div className="category-hero-content">
+            <span className="section-badge section-badge-dark" style={{ marginBottom: 'var(--space-3)' }}>
               Category Focus
             </span>
-            <h1
-              className="section-title section-title-dark"
-              style={{ marginBottom: 'var(--space-2)' }}
-            >
+            <h1 className="category-hero-title">
               {categoryData.name} Formulations
             </h1>
-            <p
-              style={{
-                fontSize: 'var(--font-size-md)',
-                color: 'var(--color-lime)',
-                fontWeight: 600,
-                marginBottom: 'var(--space-3)',
-              }}
-            >
+            <p className="category-hero-subtitle">
               {categoryData.description}
             </p>
-            <p
-              className="section-description section-description-dark"
-              style={{ fontSize: 'var(--font-size-base)', lineHeight: 1.6 }}
-            >
+            <p className="category-hero-overview">
               {categoryData.overview}
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Category Navigation Tabs Bar */}
+      <section className="category-nav-tabs-section">
+        <div className="container">
+          <div className="category-tabs-bar" role="tablist" aria-label="Switch Product Categories">
+            <Link
+              to="/products"
+              className="category-tab-link"
+            >
+              <span className="category-tab-icon">{getCategoryIcon('all')}</span>
+              <span className="category-tab-text">All Categories</span>
+            </Link>
+            {PRODUCTS_CATEGORIES_DATA.map((cat) => {
+              const isActive = cat.slug === categoryData.slug;
+              return (
+                <Link
+                  key={cat.slug}
+                  to={`/products/${cat.slug}`}
+                  className={`category-tab-link ${isActive ? 'active' : ''}`}
+                >
+                  <span className="category-tab-icon">{getCategoryIcon(cat.slug)}</span>
+                  <span className="category-tab-text">{cat.name}</span>
+                  <span className="category-tab-badge">{cat.products.length}</span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -78,14 +92,15 @@ export default function ProductDetails() {
       {/* Category Specific Products List */}
       <section
         className="section-padding"
-        style={{ backgroundColor: 'var(--color-bg-main)' }}
+        style={{ backgroundColor: 'var(--color-bg-main)', paddingTop: 'var(--space-8)' }}
       >
         <div className="container">
           <div style={{ marginBottom: 'var(--space-8)' }}>
             <h2
               style={{
-                fontSize: 'var(--font-size-xl)',
+                fontSize: 'clamp(1.25rem, 3vw, 1.65rem)',
                 color: 'var(--color-text-heading)',
+                fontWeight: 700,
               }}
             >
               Available {categoryData.name} ({categoryData.products.length} Products)
@@ -99,40 +114,20 @@ export default function ProductDetails() {
           </div>
 
           {/* Other Categories Switcher */}
-          <div
-            style={{
-              marginTop: 'var(--space-16)',
-              padding: 'var(--space-8)',
-              backgroundColor: '#ffffff',
-              borderRadius: 'var(--radius-xl)',
-              border: '1px solid var(--color-border)',
-              textAlign: 'center',
-            }}
-          >
-            <h3
-              style={{
-                fontSize: 'var(--font-size-lg)',
-                marginBottom: 'var(--space-4)',
-              }}
-            >
+          <div className="category-switcher-card">
+            <h3 className="category-switcher-title">
               Explore Other Protection Categories
             </h3>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 'var(--space-3)',
-                flexWrap: 'wrap',
-              }}
-            >
+            <div className="category-switcher-grid">
               {PRODUCTS_CATEGORIES_DATA.filter(
                 (c) => c.slug !== categoryData.slug
               ).map((cat) => (
                 <Link
                   key={cat.slug}
                   to={`/products/${cat.slug}`}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary category-switcher-btn"
                 >
+                  <span style={{ marginRight: '6px' }}>{getCategoryIcon(cat.slug)}</span>
                   {cat.name} →
                 </Link>
               ))}
