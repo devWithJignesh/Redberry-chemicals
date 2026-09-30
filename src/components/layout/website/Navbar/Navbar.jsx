@@ -3,11 +3,13 @@ import { createPortal } from 'react-dom';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { NAV_LINKS, PRODUCT_CATEGORIES } from '../../../../utils/constants';
 import { COMPANY } from '../../../../data/company';
+import { useAuth } from '../../../../context/AuthContext';
 import './Navbar.css';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { isAuthenticated, isSuperAdmin } = useAuth();
 
   const [prevKey, setPrevKey] = useState(location.key);
   if (location.key !== prevKey) {
@@ -16,7 +18,6 @@ export default function Navbar() {
       setIsMobileMenuOpen(false);
     }
   }
-
 
   // Lock body scroll and listen for Escape key when mobile menu is open
   useEffect(() => {
@@ -149,6 +150,27 @@ export default function Navbar() {
                 )}
               </div>
             ))}
+
+            {/* Mobile Admin Link */}
+            <div className="mobile-nav-item" style={{ '--item-delay': '320ms' }}>
+              <Link
+                to={isAuthenticated && isSuperAdmin ? '/admin/dashboard' : '/admin/login'}
+                className="mobile-nav-link"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(15, 81, 50, 0.08) 0%, rgba(234, 179, 8, 0.1) 100%)',
+                  border: '1px solid rgba(15, 81, 50, 0.2)',
+                }}
+                onClick={closeMobileMenu}
+              >
+                <div className="mobile-nav-left">
+                  <span className="mobile-nav-icon">🛡️</span>
+                  <span className="mobile-nav-label" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                    {isAuthenticated && isSuperAdmin ? 'SUPERADMIN PANEL' : 'ADMIN LOGIN'}
+                  </span>
+                </div>
+                <span className="mobile-nav-arrow">→</span>
+              </Link>
+            </div>
           </div>
 
           {/* Quick Contact Box */}
@@ -210,11 +232,22 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Action Button & Mobile Hamburger */}
+        {/* Action Button & Header Login Button */}
         <div className="nav-actions">
           <Link to="/contact" className="btn btn-primary">
             Get in Touch
           </Link>
+
+          {/* Header Login / Admin Button positioned at rightmost last */}
+          <Link
+            to={isAuthenticated && isSuperAdmin ? '/admin/dashboard' : '/admin/login'}
+            className="btn-header-login"
+            title={isAuthenticated && isSuperAdmin ? 'Access SuperAdmin Panel' : 'Login to Admin Panel'}
+          >
+            <span className="login-icon">🛡️</span>
+            <span>{isAuthenticated && isSuperAdmin ? 'ADMIN PANEL' : 'LOGIN'}</span>
+          </Link>
+
           <button
             type="button"
             className={`mobile-toggle-btn ${isMobileMenuOpen ? 'open' : ''}`}
