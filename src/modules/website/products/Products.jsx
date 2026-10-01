@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import PageHeroBanner from '../../../components/PageHeroBanner/PageHeroBanner';
 import ProductGrid from './components/ProductGrid/ProductGrid';
-import VideoShowcase from '../../../components/common/VideoShowcase/VideoShowcase';
 import MediaGallery from '../../../components/common/MediaGallery/MediaGallery';
 import { PRODUCTS_CATEGORIES_DATA, PRODUCTS_PAGE_HEADER } from './data';
 import { PAGE_VIDEOS } from '../../../data/videos';
@@ -38,18 +37,6 @@ export default function Products() {
           />
         </div>
       </section>
-
-      {/* Field Video Feature Section */}
-      <VideoShowcase
-        badge="Field Application Video"
-        title="Scientific Formulation at Work"
-        subtitle="Watch how Redberry bio-active formulations deliver targeted pest knockdown while safeguarding crop health."
-        videoSrc={PAGE_VIDEOS.products.showcaseVideo}
-        posterImage={PAGE_VIDEOS.products.showcasePoster}
-        ctaText="Get Custom Product Recommendation"
-        ctaLink="/contact"
-        contactLink="/about"
-      />
 
       {/* Category Video & Image Gallery */}
       <MediaGallery

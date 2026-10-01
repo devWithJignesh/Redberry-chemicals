@@ -1,162 +1,231 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = 'redberry_admin_auth_user';
+const SESSION_EXPIRY_HOURS = 24;
 
-// Mock credentials database
+// Registered system credentials
 export const MOCK_USERS = [
   {
-    id: 'usr-1',
-    name: 'Bhumika R (SuperAdmin)',
-    email: 'admin@redberryagri.com',
-    password: 'password123',
+    id: 'usr-superadmin',
+    name: 'Jignesh lakum (SuperAdmin)',
+    email: 'Jigneshlakum@gmail.com',
+    password: 'Admin@123*',
     role: 'SuperAdmin',
+    department: 'Executive Administration',
     avatar: '🛡️',
   },
   {
-    id: 'usr-2',
-    name: 'John Demo (Standard User)',
+    id: 'usr-standard',
+    name: 'Demo Field Officer',
     email: 'user@redberryagri.com',
     password: 'password123',
     role: 'User',
+    department: 'Agronomy Support',
     avatar: '👤',
   },
 ];
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState('');
-
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTime, setLockoutTime] = useState(null);
+  // Initialize session from storage on mount
   useEffect(() => {
     try {
-      if (user) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Verify session expiration
+        if (parsed.expiresAt && new Date().getTime() < parsed.expiresAt) {
+          setUser(parsed.user);
+          setToken(parsed.token);
+        } else {
+          // Session expired
+          localStorage.removeItem(STORAGE_KEY);
+          sessionStorage.removeItem(STORAGE_KEY);
+        }
       }
     } catch (e) {
-      console.error('Failed to sync auth state', e);
+      console.error('Session initialization error', e);
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
+  }, []);
+
+  // Lockout countdown handler
+  useEffect(() => {
+    if (!lockoutTime) return;
+    const interval = setInterval(() => {
+      if (new Date().getTime() >= lockoutTime) {
+        setLockoutTime(null);
+        setFailedAttempts(0);
+        setAuthError('');
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutTime]);
 
   /**
-   * Authenticate user credentials
-   * Enforces:
-   * 1. Email and password non-empty
-   * 2. Valid matching credentials
-   * 3. Role must be 'SuperAdmin' to access Admin Panel
+   * Secure Login handler
    */
-  const login = (email, password) => {
+  const login = useCallback((email, password, rememberMe = true) => {
     setAuthError('');
 
-    const trimmedEmail = (email || '').trim();
+    // Check lockout
+    if (lockoutTime && new Date().getTime() < lockoutTime) {
+      const secondsLeft = Math.ceil((lockoutTime - new Date().getTime()) / 1000);
+      const msg = `Too many failed attempts. Security lockout active for ${secondsLeft}s.`;
+      setAuthError(msg);
+      return { success: false, error: msg };
+    }
+
+    const trimmedEmail = (email || '').trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
 
+    // 1. Mandatory field validations
     if (!trimmedEmail && !trimmedPassword) {
-      const errorMsg = 'Please enter your email and password.';
+      const errorMsg = 'Please enter both your email address and password.';
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
     if (!trimmedEmail) {
-      const errorMsg = 'Email is required. Please enter your email.';
+      const errorMsg = 'Email address is required.';
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
     if (!trimmedPassword) {
-      const errorMsg = 'Password is required. Please enter your password.';
+      const errorMsg = 'Password is required.';
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
-    // Email format validation
+    // 2. Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      const errorMsg = 'Please enter a valid email address.';
+      const errorMsg = 'Please provide a valid email format (e.g. admin@redberryagri.com).';
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
-    // Match with registered users
-    const matchedUser = MOCK_USERS.find(
-      (u) =>
-        u.email.toLowerCase() === trimmedEmail.toLowerCase() &&
-        u.password === trimmedPassword
+    // 3. User verification against mock store
+    let matchedUser = MOCK_USERS.find(
+      (u) => u.email.toLowerCase() === trimmedEmail && u.password === trimmedPassword
     );
 
+    // Also support convenience alias: admin@redberry.com
+    if (!matchedUser && trimmedEmail === 'admin@redberry.com' && trimmedPassword === 'password123') {
+      matchedUser = {
+        id: 'usr-admin-alias',
+        name: 'Redberry SuperAdmin',
+        email: 'admin@redberry.com',
+        password: 'password123',
+        role: 'SuperAdmin',
+        department: 'Executive Administration',
+        avatar: '🛡️',
+      };
+    }
+
     if (!matchedUser) {
-      // Also allow any custom email if password is password123 as SuperAdmin for convenience,
-      // or strictly validate
-      if (trimmedEmail.toLowerCase() === 'admin@redberry.com' && trimmedPassword === 'password123') {
-        const adminUser = {
-          id: 'usr-admin-direct',
-          name: 'Redberry SuperAdmin',
-          email: trimmedEmail,
-          role: 'SuperAdmin',
-          avatar: '🛡️',
-        };
-        setUser(adminUser);
-        return { success: true, user: adminUser };
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+
+      if (newAttempts >= 5) {
+        const lockUntil = new Date().getTime() + 30 * 1000; // 30s lockout
+        setLockoutTime(lockUntil);
+        const lockMsg = 'Security Alert: 5 invalid login attempts. Locked for 30 seconds.';
+        setAuthError(lockMsg);
+        return { success: false, error: lockMsg };
       }
 
-      const errorMsg = 'Invalid email or password. Please check your credentials.';
+      const attemptsLeft = 5 - newAttempts;
+      const errorMsg = `Invalid credentials. Please verify your email and password. (${attemptsLeft} attempts remaining)`;
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
-    // Role verification: Only SuperAdmin is allowed
+    // 4. Role Authorization check (SuperAdmin only)
     if (matchedUser.role !== 'SuperAdmin') {
-      const errorMsg =
-        'Access Denied: Only accounts with the SuperAdmin role are authorized to access the Admin Panel.';
+      const errorMsg = `Access Restricted: Account "${matchedUser.name}" has role "${matchedUser.role}". Only SuperAdmin accounts are authorized to access this administration console.`;
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
+
+    // 5. Successful authentication
+    const sessionToken = `rb-sec-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const expiresAt = new Date().getTime() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000;
 
     const authUserData = {
       id: matchedUser.id,
       name: matchedUser.name,
       email: matchedUser.email,
       role: matchedUser.role,
+      department: matchedUser.department || 'Executive Administration',
       avatar: matchedUser.avatar,
     };
 
-    setUser(authUserData);
-    return { success: true, user: authUserData };
-  };
+    const sessionData = {
+      user: authUserData,
+      token: sessionToken,
+      expiresAt,
+    };
 
-  const logout = () => {
+    try {
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      } else {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
+      }
+    } catch (e) {
+      console.warn('Storage sync issue', e);
+    }
+
+    setUser(authUserData);
+    setToken(sessionToken);
+    setFailedAttempts(0);
+    setLockoutTime(null);
+    setAuthError('');
+
+    return { success: true, user: authUserData, token: sessionToken };
+  }, [failedAttempts, lockoutTime]);
+
+  /**
+   * Secure Logout
+   */
+  const logout = useCallback(() => {
     setUser(null);
+    setToken(null);
     setAuthError('');
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error('Logout cleanup error', e);
     }
-  };
+  }, []);
 
+  const isAuthenticated = Boolean(user && token);
   const isSuperAdmin = Boolean(user && user.role === 'SuperAdmin');
-  const isAuthenticated = Boolean(user);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        token,
+        loading,
         login,
         logout,
         isAuthenticated,
         isSuperAdmin,
         authError,
         setAuthError,
+        lockoutTime,
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { AlertTriangle, ArrowLeft, Trash2, ShieldAlert } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 
 export default function ProductDelete() {
@@ -26,14 +27,15 @@ export default function ProductDelete() {
     <div className="admin-delete-page">
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
-          <h1 className="admin-page-title">DELETE PRODUCT CONFIRMATION</h1>
+          <h1 className="admin-page-title">Delete Product Confirmation</h1>
           <p className="admin-page-subtitle">
-            Page-based verification to ensure safe catalog deletion
+            Permanent catalog deletion verification
           </p>
         </div>
         <div className="admin-page-actions">
           <Link to="/admin/products" className="btn-admin-secondary">
-            &larr; BACK TO PRODUCTS
+            <ArrowLeft size={15} />
+            <span>Back to Products</span>
           </Link>
         </div>
       </div>
@@ -41,9 +43,11 @@ export default function ProductDelete() {
       <div className="admin-delete-page-card">
         {/* Red Warning Banner */}
         <div className="admin-delete-card-header">
-          <div className="admin-delete-icon-wrap">⚠️</div>
+          <div className="admin-delete-icon-wrap">
+            <AlertTriangle size={24} strokeWidth={2} />
+          </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#991b1b', fontWeight: 800, textTransform: 'uppercase' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#991b1b', fontWeight: 700 }}>
               Confirm Product Deletion
             </h2>
             <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: '#7f1d1d' }}>
@@ -54,14 +58,14 @@ export default function ProductDelete() {
 
         {/* Details Review */}
         <div className="admin-delete-card-body">
-          <p style={{ fontSize: '0.9rem', color: 'var(--admin-text-main)', marginTop: 0 }}>
+          <p style={{ fontSize: '0.88rem', color: 'var(--admin-text-main)', marginTop: 0, fontWeight: 500 }}>
             Please review the product details below before confirming deletion:
           </p>
 
           <div className="admin-delete-item-preview">
             <div className="admin-delete-preview-row">
               <span className="admin-delete-preview-label">Product Name:</span>
-              <span className="admin-delete-preview-value">{product.name}</span>
+              <span className="admin-delete-preview-value" style={{ fontWeight: 600 }}>{product.name}</span>
             </div>
             <div className="admin-delete-preview-row">
               <span className="admin-delete-preview-label">Category:</span>
@@ -84,22 +88,23 @@ export default function ProductDelete() {
           </div>
 
           <div className="admin-alert-banner error" style={{ margin: '1.25rem 0' }}>
-            <span>🚫</span>
+            <ShieldAlert size={20} style={{ flexShrink: 0 }} />
             <div>
-              <strong>Irreversible Action:</strong> Once confirmed, this record will be immediately removed from the admin catalog and database.
+              <strong>Irreversible Action:</strong> Once confirmed, this record will be immediately removed from the catalog.
             </div>
           </div>
 
-          <div className="admin-form-footer" style={{ borderTop: 'none', padding: 0 }}>
+          <div className="admin-form-footer" style={{ borderTop: 'none', padding: 0, display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
             <Link to="/admin/products" className="btn-admin-secondary">
-              CANCEL & KEEP RECORD
+              Cancel & Keep Record
             </Link>
             <button
               type="button"
               className="btn-admin-danger"
               onClick={handleConfirmDelete}
             >
-              🗑️ CONFIRM PERMANENT DELETE
+              <Trash2 size={15} />
+              <span>Confirm Permanent Delete</span>
             </button>
           </div>
         </div>

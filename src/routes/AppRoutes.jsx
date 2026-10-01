@@ -8,10 +8,11 @@ import Products from '../modules/website/products/Products';
 import ProductDetails from '../modules/website/products/ProductDetails';
 import Contact from '../modules/website/contact/Contact';
 
-// Admin Auth & Protected Route
-import AdminLogin from '../modules/admin/login/AdminLogin';
+// Auth Route Guards & Layouts
+import PublicWebsiteGuard from '../components/auth/PublicWebsiteGuard';
 import AdminProtectedRoute from '../components/auth/AdminProtectedRoute';
 import AdminLayout from '../components/layout/admin/AdminLayout';
+import AdminLogin from '../modules/admin/login/AdminLogin';
 
 // Admin Dashboard
 import AdminDashboard from '../modules/admin/dashboard/AdminDashboard';
@@ -36,23 +37,37 @@ import InquiryList from '../modules/admin/inquiries/InquiryList';
 import InquiryForm from '../modules/admin/inquiries/InquiryForm';
 import InquiryDelete from '../modules/admin/inquiries/InquiryDelete';
 
+import SingleProductDetails from '../modules/website/products/SingleProductDetails';
+
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Public Website Routes wrapped in WebsiteLayout */}
-      <Route element={<WebsiteLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/products/:category" element={<ProductDetails />} />
-        <Route path="/contact" element={<Contact />} />
+      {/* 
+        PUBLIC WEBSITE & LOGIN ROUTES:
+        Guarded by PublicWebsiteGuard so active SuperAdmin sessions 
+        cannot navigate to the public website without explicitly logging out first.
+      */}
+      <Route element={<PublicWebsiteGuard />}>
+        {/* Public Website Routes */}
+        <Route element={<WebsiteLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/view/:id" element={<SingleProductDetails />} />
+          <Route path="/product/:id" element={<SingleProductDetails />} />
+          <Route path="/products/:category" element={<ProductDetails />} />
+          <Route path="/contact" element={<Contact />} />
+        </Route>
+
+        {/* Login Gateway Routes */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/login" element={<AdminLogin />} />
       </Route>
 
-      {/* Admin Login Routes */}
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/login" element={<AdminLogin />} />
-
-      {/* Protected Admin Routes (SuperAdmin Role Enforced) */}
+      {/* 
+        PROTECTED ADMIN PORTAL ROUTES:
+        Guarded by AdminProtectedRoute (Enforces SuperAdmin role & token)
+      */}
       <Route
         path="/admin"
         element={
@@ -61,36 +76,39 @@ export default function AppRoutes() {
           </AdminProtectedRoute>
         }
       >
-        {/* Default Admin Route -> Dashboard */}
+        {/* Default /admin -> /admin/dashboard */}
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
 
-        {/* 1. PRODUCT CRUD */}
+        {/* 1. PRODUCT CRUD MODULE */}
         <Route path="products" element={<ProductList />} />
         <Route path="products/add" element={<ProductForm />} />
         <Route path="products/edit/:id" element={<ProductForm />} />
         <Route path="products/delete/:id" element={<ProductDelete />} />
 
-        {/* 2. SUB-PRODUCT CRUD */}
+        {/* 2. SUB-PRODUCT CRUD MODULE */}
         <Route path="sub-products" element={<SubProductList />} />
         <Route path="sub-products/add" element={<SubProductForm />} />
         <Route path="sub-products/edit/:id" element={<SubProductForm />} />
         <Route path="sub-products/delete/:id" element={<SubProductDelete />} />
 
-        {/* 3. CUSTOMER REVIEW CRUD */}
+        {/* 3. CUSTOMER REVIEW CRUD MODULE */}
         <Route path="reviews" element={<ReviewList />} />
         <Route path="reviews/add" element={<ReviewForm />} />
         <Route path="reviews/edit/:id" element={<ReviewForm />} />
         <Route path="reviews/delete/:id" element={<ReviewDelete />} />
 
-        {/* 4. INQUIRY CRUD */}
+        {/* 4. INQUIRY CRUD MODULE */}
         <Route path="inquiries" element={<InquiryList />} />
         <Route path="inquiries/add" element={<InquiryForm />} />
         <Route path="inquiries/edit/:id" element={<InquiryForm />} />
         <Route path="inquiries/delete/:id" element={<InquiryDelete />} />
+
+        {/* Fallback for unknown /admin/* paths */}
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Route>
 
-      {/* Fallback */}
+      {/* Global Fallback Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

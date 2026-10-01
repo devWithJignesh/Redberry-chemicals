@@ -1,4 +1,5 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { Shield, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function AdminHeader({ onOpenMobileSidebar }) {
@@ -34,7 +35,7 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/admin/login');
+    navigate('/', { replace: true });
   };
 
   return (
@@ -47,11 +48,11 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
           style={{ display: 'none' }}
           aria-label="Open Mobile Menu"
         >
-          ☰
+          <Menu size={16} />
         </button>
 
         <div className="admin-breadcrumbs">
-          <Link to="/admin/dashboard" className="btn-admin-header-link" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}>
+          <Link to="/admin/dashboard" className="btn-admin-header-link" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}>
             ADMIN
           </Link>
           <span className="admin-breadcrumb-sep">/</span>
@@ -62,23 +63,19 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
       <div className="admin-header-right">
         {/* SuperAdmin Role Tag */}
         <div className="admin-superadmin-tag">
-          <span>🛡️</span>
+          <Shield size={14} strokeWidth={2.5} />
           <span>{user?.role || 'SUPERADMIN'}</span>
         </div>
 
-        {/* Link back to public website */}
-        <Link to="/" className="btn-admin-header-link" target="_blank" rel="noopener noreferrer" title="View Public Website">
-          🌐 VIEW WEBSITE
-        </Link>
-
-        {/* Logout action button */}
+        {/* Secure Logout action button */}
         <button
           type="button"
           className="btn-admin-logout"
           onClick={handleLogout}
-          title="Sign out of SuperAdmin session"
+          title="Sign out of SuperAdmin session and return to public website"
         >
-          🚪 LOGOUT
+          <LogOut size={14} />
+          <span>LOGOUT</span>
         </button>
       </div>
     </header>

@@ -1,25 +1,53 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { 
+  Lock, 
+  Mail, 
+  Eye, 
+  EyeOff, 
+  ArrowRight, 
+  ArrowLeft, 
+  ShieldAlert,
+  ShieldCheck,
+  Sparkles
+} from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState({ email: '', password: '', form: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login, isAuthenticated, isSuperAdmin, authError, setAuthError } = useAuth();
+  const { login, isAuthenticated, isSuperAdmin, authError, setAuthError, lockoutTime } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // If already authenticated as SuperAdmin, redirect directly to dashboard
+  // Redirect if already logged in with SuperAdmin privileges
   useEffect(() => {
     if (isAuthenticated && isSuperAdmin) {
-      navigate('/admin/dashboard', { replace: true });
+      const destination = location.state?.from?.pathname || '/admin/dashboard';
+      navigate(destination, { replace: true });
     }
-  }, [isAuthenticated, isSuperAdmin, navigate]);
+  }, [isAuthenticated, isSuperAdmin, navigate, location]);
 
-  // Clean form errors when user types
+  // Display reason message if redirected from protected route
+  useEffect(() => {
+    if (location.state?.reason === 'unauthorized') {
+      setErrors((prev) => ({
+        ...prev,
+        form: 'Unauthorized: SuperAdmin credentials required to access that page.',
+      }));
+    } else if (location.state?.reason === 'unauthenticated' && location.state?.from?.pathname) {
+      setErrors((prev) => ({
+        ...prev,
+        form: 'Session required: Please sign in to access the management console.',
+      }));
+    }
+  }, [location.state]);
+
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
     if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
@@ -39,15 +67,13 @@ export default function AdminLogin() {
     const newErrors = { email: '', password: '', form: '' };
     let hasError = false;
 
-    // Requirement 1: Email and Password fields are required
-    // User should not be able to log in if either email or password is empty
     if (!email.trim()) {
-      newErrors.email = 'Email field is required and cannot be empty.';
+      newErrors.email = 'Email address is required.';
       hasError = true;
     }
 
     if (!password.trim()) {
-      newErrors.password = 'Password field is required and cannot be empty.';
+      newErrors.password = 'Password is required.';
       hasError = true;
     }
 
@@ -57,11 +83,10 @@ export default function AdminLogin() {
     }
 
     setIsSubmitting(true);
-    const result = login(email, password);
+    const result = login(email, password, rememberMe);
     setIsSubmitting(false);
 
     if (result.success) {
-      // Redirect to Dashboard (or the page they attempted to access if protected)
       const from = location.state?.from?.pathname || '/admin/dashboard';
       navigate(from, { replace: true });
     } else {
@@ -69,46 +94,69 @@ export default function AdminLogin() {
     }
   };
 
-  // Demo helper buttons
-  const fillSuperAdmin = () => {
-    setEmail('admin@redberryagri.com');
-    setPassword('password123');
-    setErrors({ email: '', password: '', form: '' });
-    setAuthError('');
-  };
-
-  const fillNonAdmin = () => {
-    setEmail('user@redberryagri.com');
-    setPassword('password123');
-    setErrors({ email: '', password: '', form: '' });
-    setAuthError('');
-  };
-
   return (
     <div className="admin-login-wrapper">
-      <div className="admin-login-card">
-        {/* Card Header */}
-        <div className="admin-login-header">
-          <img
-            src="/images/logo/logo-icon.png"
-            alt="Redberry Agri Sciences"
-            className="admin-login-logo"
-          />
-          <h1 className="admin-login-title">SUPERADMIN LOGIN</h1>
-          <p className="admin-login-subtitle">
-            Redberry Agri Sciences Portal
-          </p>
+      <div className="admin-login-split-card">
+        {/* Left Side: Rich Agrochemical Hero Image Panel */}
+        <div className="admin-login-agro-panel">
+          <div className="admin-agro-overlay"></div>
+          
+          <div className="admin-agro-top-tag">
+            <span className="admin-agro-tag-pill">
+              <ShieldCheck size={14} className="tag-icon" />
+              <span>Enterprise Admin Portal</span>
+            </span>
+          </div>
+
+          <div className="admin-agro-content">
+            <div className="admin-agro-brand">
+              <img
+                src="/images/logo/logo-icon.png"
+                alt="Redberry Logo"
+                className="admin-agro-logo"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <div className="admin-agro-titles">
+                <span className="admin-agro-company-name">REDBERRY AGRI SCIENCES</span>
+                <h2 className="admin-agro-headline">
+                  Advanced Agrochemicals & Crop Solutions
+                </h2>
+              </div>
+            </div>
+
+            <p className="admin-agro-desc">
+              Centralized management gateway for formulation catalogs, grower reviews, and dealer procurement.
+            </p>
+
+            <div className="admin-agro-badges">
+              <span className="admin-agro-pill">
+                <ShieldCheck size={13} />
+                <span>ISO 9001:2015</span>
+              </span>
+              <span className="admin-agro-pill">
+                <Sparkles size={13} />
+                <span>CIB & RC Certified</span>
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Card Body */}
-        <div className="admin-login-body">
-          {/* General Form Error Alert */}
+        {/* Right Side: Clean Professional Login Form */}
+        <div className="admin-login-form-panel">
+          <div className="admin-login-form-header">
+            <h1 className="admin-login-heading">SuperAdmin Login</h1>
+            <p className="admin-login-subheading">
+              Enter your corporate credentials to access the console
+            </p>
+          </div>
+
+          {/* Security / Error Banner */}
           {(errors.form || authError) && (
             <div className="admin-alert-banner error" role="alert">
-              <span>⚠️</span>
-              <div>
-                <strong>Authentication Notice:</strong> {errors.form || authError}
-              </div>
+              <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>{errors.form || authError}</div>
             </div>
           )}
 
@@ -118,16 +166,20 @@ export default function AdminLogin() {
               <label htmlFor="login-email" className="admin-form-label">
                 Email Address <span className="required">*</span>
               </label>
-              <input
-                id="login-email"
-                type="email"
-                className={`admin-form-input ${errors.email ? 'error' : ''}`}
-                placeholder="admin@redberryagri.com"
-                value={email}
-                onChange={handleEmailChange}
-                autoComplete="email"
-                required
-              />
+              <div className="admin-input-icon-wrap">
+                <Mail size={16} className="admin-field-icon" />
+                <input
+                  id="login-email"
+                  type="email"
+                  className={`admin-form-input with-icon ${errors.email ? 'error' : ''}`}
+                  placeholder="admin@redberryagri.com"
+                  value={email}
+                  onChange={handleEmailChange}
+                  autoComplete="email"
+                  disabled={Boolean(lockoutTime)}
+                  required
+                />
+              </div>
               {errors.email && (
                 <span className="admin-form-error-msg">{errors.email}</span>
               )}
@@ -138,76 +190,62 @@ export default function AdminLogin() {
               <label htmlFor="login-password" className="admin-form-label">
                 Password <span className="required">*</span>
               </label>
-              <input
-                id="login-password"
-                type="password"
-                className={`admin-form-input ${errors.password ? 'error' : ''}`}
-                placeholder="••••••••••••"
-                value={password}
-                onChange={handlePasswordChange}
-                autoComplete="current-password"
-                required
-              />
+              <div className="admin-input-icon-wrap">
+                <Lock size={16} className="admin-field-icon" />
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`admin-form-input with-icon ${errors.password ? 'error' : ''}`}
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={handlePasswordChange}
+                  autoComplete="current-password"
+                  disabled={Boolean(lockoutTime)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-toggle-password"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {errors.password && (
                 <span className="admin-form-error-msg">{errors.password}</span>
               )}
             </div>
 
+            {/* Remember Me */}
+            <div className="admin-login-options-row">
+              <label className="admin-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember session for 24h</span>
+              </label>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="btn-admin-primary"
-              style={{ width: '100%', justifyContent: 'center', marginTop: '1.25rem', padding: '0.85rem' }}
-              disabled={isSubmitting}
+              className="btn-admin-login-submit"
+              disabled={isSubmitting || Boolean(lockoutTime)}
             >
-              {isSubmitting ? 'AUTHENTICATING...' : 'LOGIN TO DASHBOARD 🔐'}
+              <span>{isSubmitting ? 'Authenticating...' : 'Sign In'}</span>
+              <ArrowRight size={16} />
             </button>
           </form>
 
-          {/* Quick Demo Credentials Assistant */}
-          <div className="admin-demo-creds-box">
-            <div className="admin-demo-creds-title">
-              <span>Demo Quick-Fill</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', fontWeight: 600 }}>
-                Role Verification
-              </span>
-            </div>
-            <p style={{ margin: '0.2rem 0 0.6rem', color: 'var(--admin-text-muted)', fontSize: '0.78rem' }}>
-              Test SuperAdmin access vs role-restricted accounts:
-            </p>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn-fill-demo"
-                onClick={fillSuperAdmin}
-                title="Loads SuperAdmin demo credentials"
-              >
-                🛡️ SuperAdmin (Authorized)
-              </button>
-              <button
-                type="button"
-                className="btn-fill-demo"
-                onClick={fillNonAdmin}
-                style={{ background: '#f1f5f9', color: '#475569', borderColor: '#cbd5e1' }}
-                title="Loads standard user to test role access rejection"
-              >
-                👤 Non-Admin (Blocked)
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-            <Link
-              to="/"
-              style={{
-                fontSize: '0.82rem',
-                color: 'var(--admin-primary)',
-                textDecoration: 'none',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-              }}
-            >
-              &larr; Return to Public Website
+          {/* Return to Public Site Link */}
+          <div className="admin-login-footer-link">
+            <Link to="/" className="btn-back-website">
+              <ArrowLeft size={14} />
+              <span>Return to Public Website</span>
             </Link>
           </div>
         </div>

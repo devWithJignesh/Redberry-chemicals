@@ -3,61 +3,48 @@ import './ProductCard.css';
 
 export default function ProductCard({ product }) {
   const {
+    id,
+    slug,
     name,
     technicalName,
     category,
     tag,
     image,
     description,
-    targetCrops,
-    dosage,
-    packSizes,
+    shortDescription,
   } = product;
+
+  const productUrl = `/products/view/${id || slug || 'redprid-super'}`;
+  const summaryText = shortDescription || description || '';
 
   return (
     <div className="product-card">
-      <div className="product-card-media">
+      <Link to={productUrl} className="product-card-media" title={`View details for ${name}`}>
         <img src={image} alt={name} className="product-card-img" />
         {tag && <span className="product-tag-badge">{tag}</span>}
         <span className="product-category-chip">{category}</span>
-      </div>
+      </Link>
 
       <div className="product-card-body">
         <div>
-          <h3 className="product-title">{name}</h3>
-          <span className="product-technical">{technicalName}</span>
-          <p className="product-desc">{description}</p>
-
-          <div className="product-meta-specs">
-            <div className="product-spec-row">
-              <span className="product-spec-label">Dosage:</span>
-              <span className="product-spec-val">{dosage}</span>
-            </div>
-            {targetCrops && targetCrops.length > 0 && (
-              <div className="product-spec-row">
-                <span className="product-spec-label">Crops:</span>
-                <span className="product-spec-val">
-                  {targetCrops.slice(0, 4).join(', ')}
-                </span>
-              </div>
-            )}
-          </div>
+          <h3 className="product-title">
+            <Link to={productUrl} style={{ color: 'inherit', textDecoration: 'none' }}>
+              {name}
+            </Link>
+          </h3>
+          {technicalName && <span className="product-technical">{technicalName}</span>}
+          <p className="product-desc">
+            {summaryText.length > 95 ? summaryText.substring(0, 95) + '...' : summaryText}
+          </p>
         </div>
 
-        <div className="product-card-footer">
-          <div className="product-pack-pills">
-            {packSizes?.slice(0, 3).map((size) => (
-              <span key={size} className="pack-pill">
-                {size}
-              </span>
-            ))}
-          </div>
+        <div className="product-card-footer" style={{ marginTop: 'auto' }}>
           <Link
-            to={`/products/${category}`}
-            className="btn btn-secondary"
-            style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }}
+            to={productUrl}
+            className="btn btn-primary"
+            style={{ width: '100%', justifyContent: 'center', textAlign: 'center' }}
           >
-            Category →
+            View Details →
           </Link>
         </div>
       </div>

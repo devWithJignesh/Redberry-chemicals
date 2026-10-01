@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Search, Pencil, Trash2, Filter } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 
 export default function InquiryList() {
-  const { inquiries, deleteInquiry, updateInquiry } = useAdminData();
+  const { inquiries, updateInquiry } = useAdminData();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [inlineDeleteId, setInlineDeleteId] = useState(null);
 
   const filteredInquiries = inquiries.filter((item) => {
     const matchesSearch =
@@ -24,15 +24,10 @@ export default function InquiryList() {
     updateInquiry(id, { status: newStatus });
   };
 
-  const handleInlineDeleteConfirm = (id) => {
-    deleteInquiry(id);
-    setInlineDeleteId(null);
-  };
-
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case 'Resolved':
-        return 'resolved';
+        return 'active';
       case 'In Progress':
         return 'in-progress';
       case 'Pending':
@@ -45,53 +40,24 @@ export default function InquiryList() {
     <div className="admin-inquiry-list-page">
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
-          <h1 className="admin-page-title">INQUIRY MANAGEMENT</h1>
+          <h1 className="admin-page-title">Inquiry Management</h1>
           <p className="admin-page-subtitle">
-            Manage incoming dealer applications, bulk procurement inquiries, and customer support leads
+            Manage incoming dealer applications, bulk procurement inquiries, and customer leads
           </p>
         </div>
         <div className="admin-page-actions">
           <Link to="/admin/inquiries/add" className="btn-admin-primary">
-            <span>➕</span> CREATE MANUAL LEAD
+            <Plus size={16} strokeWidth={2.5} />
+            <span>Create Manual Lead</span>
           </Link>
         </div>
       </div>
-
-      {inlineDeleteId && (
-        <div className="admin-inline-delete-box">
-          <div className="admin-inline-delete-text">
-            <span>⚠️</span>
-            <span>
-              Are you sure you want to delete inquiry from "
-              <strong>{inquiries.find((i) => i.id === inlineDeleteId)?.name}</strong>"?
-            </span>
-          </div>
-          <div className="admin-inline-delete-actions">
-            <button
-              type="button"
-              className="btn-admin-danger"
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
-              onClick={() => handleInlineDeleteConfirm(inlineDeleteId)}
-            >
-              CONFIRM DELETE
-            </button>
-            <button
-              type="button"
-              className="btn-admin-secondary"
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
-              onClick={() => setInlineDeleteId(null)}
-            >
-              CANCEL
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="admin-card-container">
         <div className="admin-card-header-bar">
           <div className="admin-table-filters">
             <div className="admin-search-input-wrap">
-              <span className="admin-search-icon">🔍</span>
+              <Search size={15} className="admin-search-icon" />
               <input
                 type="text"
                 className="admin-search-input"
@@ -101,20 +67,23 @@ export default function InquiryList() {
               />
             </div>
 
-            <select
-              className="admin-select-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="ALL">ALL STATUSES</option>
-              <option value="Pending">PENDING (Action Required)</option>
-              <option value="In Progress">IN PROGRESS</option>
-              <option value="Resolved">RESOLVED / COMPLETED</option>
-            </select>
+            <div className="admin-select-wrap">
+              <Filter size={14} className="admin-filter-icon" />
+              <select
+                className="admin-select-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
           </div>
 
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>
-            SHOWING {filteredInquiries.length} OF {inquiries.length} INQUIRIES
+          <div className="admin-table-counter">
+            Showing <strong>{filteredInquiries.length}</strong> of {inquiries.length} inquiries
           </div>
         </div>
 
@@ -122,19 +91,22 @@ export default function InquiryList() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>CLIENT / CONTACT</th>
-                <th>SUBJECT & CATEGORY</th>
-                <th>DATE RECEIVED</th>
-                <th>STATUS</th>
-                <th>PRIORITY</th>
-                <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                <th style={{ width: '25%' }}>Lead / Sender</th>
+                <th style={{ width: '22%' }}>Subject & Message</th>
+                <th style={{ width: '15%' }}>Status</th>
+                <th style={{ width: '12%' }}>Priority</th>
+                <th style={{ width: '12%' }}>Date</th>
+                <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredInquiries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--admin-text-muted)' }}>
-                    No inquiries found matching criteria.
+                  <td colSpan={6} className="admin-table-empty">
+                    <p className="admin-table-empty-title">No inquiries found</p>
+                    <p className="admin-table-empty-sub">
+                      Try adjusting your search query or status filter.
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -142,34 +114,34 @@ export default function InquiryList() {
                   <tr key={item.id}>
                     <td>
                       <div>
-                        <span className="admin-table-item-name">{item.name}</span>
+                        <strong style={{ display: 'block', fontSize: '0.88rem', color: '#1e293b' }}>
+                          {item.name}
+                        </strong>
                         <span className="admin-table-item-sub">
-                          ✉ {item.email} &bull; 📞 {item.phone || 'N/A'}
+                          {item.email} {item.phone ? `• ${item.phone}` : ''}
                         </span>
                       </div>
                     </td>
-                    <td style={{ maxWidth: '280px' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--admin-text-main)', display: 'block' }}>
-                        {item.subject}
-                      </span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)' }}>
-                        {item.message ? item.message.slice(0, 50) + '...' : ''}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
-                      {item.date}
+                    <td>
+                      <div style={{ maxWidth: '280px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#334155', display: 'block' }}>
+                          {item.subject}
+                        </span>
+                        <span className="admin-table-item-sub">
+                          {item.message ? item.message.slice(0, 50) + '...' : 'No details'}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <select
-                        value={item.status}
+                        value={item.status || 'Pending'}
                         onChange={(e) => handleQuickStatusChange(item.id, e.target.value)}
                         className={`admin-badge ${getStatusBadgeClass(item.status)}`}
                         style={{ border: 'none', cursor: 'pointer', outline: 'none' }}
-                        title="Click to quick-update status"
                       >
-                        <option value="Pending">● Pending</option>
-                        <option value="In Progress">● In Progress</option>
-                        <option value="Resolved">● Resolved</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
                       </select>
                     </td>
                     <td>
@@ -177,31 +149,29 @@ export default function InquiryList() {
                         {item.priority || 'Normal'}
                       </span>
                     </td>
+                    <td>
+                      <span className="admin-table-date">
+                        {item.createdAt || '2026-08-15'}
+                      </span>
+                    </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                      <div className="admin-table-actions">
                         <Link
                           to={`/admin/inquiries/edit/${item.id}`}
                           className="btn-table-action edit"
                           title="View / Edit inquiry"
                         >
-                          ✏️ EDIT / NOTES
+                          <Pencil size={13} strokeWidth={2} />
+                          <span>Edit</span>
                         </Link>
                         <Link
                           to={`/admin/inquiries/delete/${item.id}`}
                           className="btn-table-action delete"
-                          title="Open dedicated delete page"
+                          title="Delete inquiry"
                         >
-                          🗑️ DELETE
+                          <Trash2 size={13} strokeWidth={2} />
+                          <span>Delete</span>
                         </Link>
-                        <button
-                          type="button"
-                          className="btn-table-action delete"
-                          style={{ background: '#fef2f2' }}
-                          onClick={() => setInlineDeleteId(item.id)}
-                          title="Inline delete"
-                        >
-                          ⚡ QUICK
-                        </button>
                       </div>
                     </td>
                   </tr>

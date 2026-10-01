@@ -1,84 +1,50 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Plus, Search, Pencil, Trash2, Filter } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 
 export default function SubProductList() {
-  const { subProducts, deleteSubProduct } = useAdminData();
+  const { subProducts, products } = useAdminData();
   const [searchQuery, setSearchQuery] = useState('');
-  const [chemicalGroupFilter, setChemicalGroupFilter] = useState('ALL');
-  const [inlineDeleteId, setInlineDeleteId] = useState(null);
+  const [parentFilter, setParentFilter] = useState('ALL');
 
-  // Extract unique chemical groups
-  const chemicalGroups = [
+  // Extract unique parent product categories/names
+  const parentCategories = [
     'ALL',
-    ...Array.from(new Set(subProducts.map((s) => s.chemicalGroup).filter(Boolean))),
+    ...Array.from(new Set(subProducts.map((s) => s.parentProductName || s.category).filter(Boolean))),
   ];
 
   const filteredSubProducts = subProducts.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.technicalName && item.technicalName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.formulation && item.formulation.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.targetPests && item.targetPests.toLowerCase().includes(searchQuery.toLowerCase()));
+      (item.dosage && item.dosage.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.targetPests && item.targetPests.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.recommendedCrops && item.recommendedCrops.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.packSizes && item.packSizes.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesGroup =
-      chemicalGroupFilter === 'ALL' || item.chemicalGroup === chemicalGroupFilter;
+    const parentName = item.parentProductName || item.category;
+    const matchesParent = parentFilter === 'ALL' || parentName === parentFilter;
 
-    return matchesSearch && matchesGroup;
+    return matchesSearch && matchesParent;
   });
-
-  const handleInlineDeleteConfirm = (id) => {
-    deleteSubProduct(id);
-    setInlineDeleteId(null);
-  };
 
   return (
     <div className="admin-subproduct-list-page">
       {/* Page Header */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
-          <h1 className="admin-page-title">SUB-PRODUCT MANAGEMENT</h1>
+          <h1 className="admin-page-title">Sub-Product Management</h1>
           <p className="admin-page-subtitle">
-            Manage specific agrochemical formulations, active ingredients, dosage rates, and crop recommendations
+            Manage commercial formulations, dosage rates, packaging sizes, and crop recommendations
           </p>
         </div>
         <div className="admin-page-actions">
           <Link to="/admin/sub-products/add" className="btn-admin-primary">
-            <span>➕</span> ADD SUB-PRODUCT
+            <Plus size={16} strokeWidth={2.5} />
+            <span>Add Sub-Product</span>
           </Link>
         </div>
       </div>
-
-      {/* Inline Delete Alert */}
-      {inlineDeleteId && (
-        <div className="admin-inline-delete-box">
-          <div className="admin-inline-delete-text">
-            <span>⚠️</span>
-            <span>
-              Are you sure you want to delete formulation "
-              <strong>{subProducts.find((s) => s.id === inlineDeleteId)?.name}</strong>"?
-            </span>
-          </div>
-          <div className="admin-inline-delete-actions">
-            <button
-              type="button"
-              className="btn-admin-danger"
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
-              onClick={() => handleInlineDeleteConfirm(inlineDeleteId)}
-            >
-              CONFIRM DELETE
-            </button>
-            <button
-              type="button"
-              className="btn-admin-secondary"
-              style={{ padding: '0.4rem 0.8rem', fontSize: '0.78rem' }}
-              onClick={() => setInlineDeleteId(null)}
-            >
-              CANCEL
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Data Card */}
       <div className="admin-card-container">
@@ -86,31 +52,34 @@ export default function SubProductList() {
         <div className="admin-card-header-bar">
           <div className="admin-table-filters">
             <div className="admin-search-input-wrap">
-              <span className="admin-search-icon">🔍</span>
+              <Search size={15} className="admin-search-icon" />
               <input
                 type="text"
                 className="admin-search-input"
-                placeholder="Search sub-products by molecule, pest..."
+                placeholder="Search sub-products by name, dosage, packaging..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <select
-              className="admin-select-filter"
-              value={chemicalGroupFilter}
-              onChange={(e) => setChemicalGroupFilter(e.target.value)}
-            >
-              {chemicalGroups.map((grp) => (
-                <option key={grp} value={grp}>
-                  GROUP: {grp.toUpperCase()}
-                </option>
-              ))}
-            </select>
+            <div className="admin-select-wrap">
+              <Filter size={14} className="admin-filter-icon" />
+              <select
+                className="admin-select-filter"
+                value={parentFilter}
+                onChange={(e) => setParentFilter(e.target.value)}
+              >
+                {parentCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    Category: {cat === 'ALL' ? 'All Product Lines' : cat}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--admin-text-muted)' }}>
-            SHOWING {filteredSubProducts.length} OF {subProducts.length} SUB-PRODUCTS
+          <div className="admin-table-counter">
+            Showing <strong>{filteredSubProducts.length}</strong> of {subProducts.length} sub-products
           </div>
         </div>
 
@@ -119,90 +88,101 @@ export default function SubProductList() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>SUB-PRODUCT NAME</th>
-                <th>TECHNICAL FORMULATION</th>
-                <th>CHEMICAL GROUP</th>
-                <th>RECOMMENDED CROPS</th>
-                <th>STATUS</th>
-                <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                <th style={{ width: '32%' }}>Sub-Product Item</th>
+                <th style={{ width: '18%' }}>Parent Product Line</th>
+                <th style={{ width: '18%' }}>Dosage & Application</th>
+                <th style={{ width: '16%' }}>Packaging Sizes</th>
+                <th style={{ width: '8%' }}>Status</th>
+                <th style={{ width: '8%', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredSubProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--admin-text-muted)' }}>
-                    No sub-products found matching your search.
+                  <td colSpan={6} className="admin-table-empty">
+                    <p className="admin-table-empty-title">No sub-products found</p>
+                    <p className="admin-table-empty-sub">
+                      Try adjusting your search query or category filter.
+                    </p>
                   </td>
                 </tr>
               ) : (
-                filteredSubProducts.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="admin-table-item-cell">
-                        <img
-                          src={item.image || '/images/products/premium_dummy.jpg'}
-                          alt={item.name}
-                          className="admin-table-thumb"
-                        />
-                        <div>
-                          <span className="admin-table-item-name">{item.name}</span>
-                          <span className="admin-table-item-sub">
-                            {item.formulation || item.category || 'Insecticide'}
-                          </span>
+                filteredSubProducts.map((item) => {
+                  const isActive = item.status?.toLowerCase() === 'active';
+                  const packagingStr = Array.isArray(item.packagingSizes)
+                    ? item.packagingSizes.join(', ')
+                    : item.packSizes || item.packagingSizes || '100 gm, 250 gm, 500 gm, 1 Kg';
+
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="admin-table-item-cell">
+                          <img
+                            src={item.image || '/images/products/premium_dummy.jpg'}
+                            alt={item.name}
+                            className="admin-table-thumb"
+                            onError={(e) => {
+                              e.target.src = '/images/products/premium_dummy.jpg';
+                            }}
+                          />
+                          <div className="admin-table-item-info">
+                            <span className="admin-table-item-name">{item.name}</span>
+                            <span className="admin-table-item-sub">
+                              {item.shortDescription
+                                ? item.shortDescription.length > 55
+                                  ? item.shortDescription.slice(0, 55) + '...'
+                                  : item.shortDescription
+                                : item.targetPests
+                                ? `Target: ${item.targetPests.slice(0, 45)}...`
+                                : 'Standard formulation packaging'}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--admin-primary)' }}>
-                        {item.technicalName || 'N/A'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="admin-badge category">
-                        {item.chemicalGroup || 'Standard Group'}
-                      </span>
-                    </td>
-                    <td style={{ maxWidth: '200px' }}>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-main)' }}>
-                        {item.recommendedCrops
-                          ? item.recommendedCrops.slice(0, 45) + '...'
-                          : 'Cotton, Paddy, Vegetables'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`admin-badge ${item.status?.toLowerCase() === 'active' ? 'active' : 'pending'}`}>
-                        ● {item.status || 'Active'}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
-                        <Link
-                          to={`/admin/sub-products/edit/${item.id}`}
-                          className="btn-table-action edit"
-                          title="Edit formulation details"
-                        >
-                          ✏️ EDIT
-                        </Link>
-                        <Link
-                          to={`/admin/sub-products/delete/${item.id}`}
-                          className="btn-table-action delete"
-                          title="Open dedicated delete verification"
-                        >
-                          🗑️ DELETE
-                        </Link>
-                        <button
-                          type="button"
-                          className="btn-table-action delete"
-                          style={{ background: '#fef2f2' }}
-                          onClick={() => setInlineDeleteId(item.id)}
-                          title="Quick inline delete"
-                        >
-                          ⚡ QUICK
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td>
+                        <span className="admin-badge category">
+                          {item.parentProductName || item.category || 'Agro Chemicals'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.82rem', color: '#334155', fontWeight: 600 }}>
+                          {item.dosage || 'Standard dose per acre'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="admin-table-feature-pill" title={packagingStr}>
+                          {packagingStr.length > 25 ? packagingStr.slice(0, 25) + '...' : packagingStr}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-badge-status ${isActive ? 'active' : 'inactive'}`}>
+                          <span className="status-dot"></span>
+                          {item.status || 'Active'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="admin-table-actions">
+                          <Link
+                            to={`/admin/sub-products/edit/${item.id}`}
+                            className="btn-table-action edit"
+                            title="Edit sub-product"
+                          >
+                            <Pencil size={13} strokeWidth={2} />
+                            <span>Edit</span>
+                          </Link>
+                          <Link
+                            to={`/admin/sub-products/delete/${item.id}`}
+                            className="btn-table-action delete"
+                            title="Delete sub-product"
+                          >
+                            <Trash2 size={13} strokeWidth={2} />
+                            <span>Delete</span>
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

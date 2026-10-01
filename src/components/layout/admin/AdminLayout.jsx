@@ -22,6 +22,15 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-layout-root">
+      {/* Mobile Drawer Backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="admin-sidebar-backdrop"
+          onClick={closeMobileSidebar}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <AdminSidebar
         isCollapsed={isSidebarCollapsed}

@@ -1,4 +1,25 @@
 import { Link } from 'react-router-dom';
+import {
+  Package,
+  FlaskConical,
+  Star,
+  Mail,
+  Plus,
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  ChevronRight,
+  TrendingUp,
+  AlertTriangle,
+  Award,
+  FileText,
+  Building2,
+  Phone,
+  Sparkles,
+  Layers,
+  ArrowRight
+} from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useAdminData } from '../../../context/AdminDataContext';
 
@@ -8,227 +29,377 @@ export default function AdminDashboard() {
 
   // Statistics calculation
   const totalProducts = products.length;
-  const activeProducts = products.filter((p) => p.status === 'Active').length;
+  const activeProducts = products.filter((p) => p.status?.toLowerCase() === 'active').length;
   const totalSubProducts = subProducts.length;
-  const activeSubProducts = subProducts.filter((s) => s.status === 'Active').length;
+  const activeSubProducts = subProducts.filter((s) => s.status?.toLowerCase() === 'active').length;
 
   const totalReviews = reviews.length;
-  const verifiedReviews = reviews.filter((r) => r.verified).length;
+  const verifiedReviews = reviews.filter((r) => r.verified !== false).length;
   const averageRating = (
     reviews.reduce((acc, r) => acc + (Number(r.rate) || 5), 0) / (reviews.length || 1)
   ).toFixed(1);
 
   const totalInquiries = inquiries.length;
   const pendingInquiries = inquiries.filter((i) => i.status === 'Pending').length;
+  const inProgressInquiries = inquiries.filter((i) => i.status === 'In Progress').length;
   const resolvedInquiries = inquiries.filter((i) => i.status === 'Resolved').length;
+
+  // Recent 4 inquiries
+  const recentInquiries = inquiries.slice(0, 4);
 
   return (
     <div className="admin-dashboard-page">
-      {/* Page Header with Capitalized Names */}
+      {/* Page Header */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
-          <h1 className="admin-page-title">SUPERADMIN DASHBOARD</h1>
+          <h1 className="admin-page-title">Executive Dashboard</h1>
           <p className="admin-page-subtitle">
-            Welcome back, <strong>{user?.name || 'SuperAdmin'}</strong>. Overview of agricultural products, catalog entries, and customer communications.
+            Welcome back, <strong>{user?.name || 'Parth Patel'}</strong> • Real-time overview of agrochemical formulations, dealer leads, and grower reviews
           </p>
         </div>
         <div className="admin-page-actions">
           <Link to="/admin/products/add" className="btn-admin-primary">
-            <span>➕</span> ADD NEW PRODUCT
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Add Product</span>
           </Link>
           <Link to="/admin/sub-products/add" className="btn-admin-secondary">
-            <span>➕</span> ADD SUB-PRODUCT
+            <FlaskConical size={15} />
+            <span>Add Formulation</span>
           </Link>
         </div>
       </div>
 
-      {/* ========================================================
-          TWO CARDS ON THE DASHBOARD (STRICT REQUIREMENT #2)
-          ======================================================== */}
-      <div className="admin-dashboard-two-cards-grid">
-        {/* CARD 1: PRODUCTS & SUB-PRODUCTS INVENTORY STATISTICS */}
-        <div className="admin-stat-card">
-          <div>
-            <div className="admin-stat-card-header">
-              <div>
-                <h2 className="admin-stat-card-title">PRODUCT & CATALOG OVERVIEW</h2>
-                <p className="admin-stat-card-subtitle">
-                  Category product lines and registered formulation sub-products
-                </p>
-              </div>
-              <div className="admin-stat-card-icon">📦</div>
+      {/* 4-Card Agro Executive Metrics Grid */}
+      <div className="admin-metrics-grid-4">
+        {/* Metric 1: Product Categories */}
+        <div className="admin-metric-card">
+          <div className="admin-metric-card-top">
+            <div className="admin-metric-icon-box emerald">
+              <Package size={22} />
             </div>
-
-            <div className="admin-stat-metrics-row">
-              <div className="admin-metric-box">
-                <span className="admin-metric-value">{totalProducts}</span>
-                <span className="admin-metric-label">TOTAL PRODUCTS</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--admin-success)', fontWeight: 700, marginTop: '2px' }}>
-                  ● {activeProducts} Active Lines
-                </span>
-              </div>
-              <div className="admin-metric-box">
-                <span className="admin-metric-value">{totalSubProducts}</span>
-                <span className="admin-metric-label">TOTAL SUB-PRODUCTS</span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--admin-primary-light)', fontWeight: 700, marginTop: '2px' }}>
-                  ● {activeSubProducts} Active Formulations
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="admin-stat-card-footer">
-            <span className="admin-stat-badge">
-              <span>🌿</span> CIB & Agrochemical Catalog Live
+            <span className="admin-metric-badge success">
+              <CheckCircle2 size={12} />
+              {activeProducts} Active
             </span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/products" className="btn-table-action view">
-                VIEW PRODUCTS →
-              </Link>
-              <Link to="/admin/sub-products" className="btn-table-action view">
-                VIEW SUB-PRODUCTS →
-              </Link>
-            </div>
+          </div>
+          <div className="admin-metric-value-wrap">
+            <h3 className="admin-metric-number">{totalProducts}</h3>
+            <span className="admin-metric-title">Product Categories</span>
+          </div>
+          <div className="admin-metric-footer">
+            <span className="admin-metric-detail">
+              Agriculture, Specialty & Water Treatment
+            </span>
+            <Link to="/admin/products" className="admin-metric-link" title="Manage Products">
+              <ArrowUpRight size={15} />
+            </Link>
           </div>
         </div>
 
-        {/* CARD 2: REVIEWS & INQUIRIES STATISTICS */}
-        <div className="admin-stat-card card-alt">
-          <div>
-            <div className="admin-stat-card-header">
+        {/* Metric 2: Formulations (Sub-Products) */}
+        <div className="admin-metric-card">
+          <div className="admin-metric-card-top">
+            <div className="admin-metric-icon-box blue">
+              <FlaskConical size={22} />
+            </div>
+            <span className="admin-metric-badge info">
+              <Layers size={12} />
+              {activeSubProducts} Formulations
+            </span>
+          </div>
+          <div className="admin-metric-value-wrap">
+            <h3 className="admin-metric-number">{totalSubProducts}</h3>
+            <span className="admin-metric-title">Chemical Formulations</span>
+          </div>
+          <div className="admin-metric-footer">
+            <span className="admin-metric-detail">
+              Insecticides, Fungicides, Herbicides
+            </span>
+            <Link to="/admin/sub-products" className="admin-metric-link" title="Manage Sub-Products">
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Metric 3: Customer & Farmer Reviews */}
+        <div className="admin-metric-card">
+          <div className="admin-metric-card-top">
+            <div className="admin-metric-icon-box amber">
+              <Star size={22} fill="#eab308" />
+            </div>
+            <span className="admin-metric-badge rating">
+              ★ {averageRating} / 5.0
+            </span>
+          </div>
+          <div className="admin-metric-value-wrap">
+            <h3 className="admin-metric-number">{totalReviews}</h3>
+            <span className="admin-metric-title">Grower Reviews</span>
+          </div>
+          <div className="admin-metric-footer">
+            <span className="admin-metric-detail">
+              {verifiedReviews} Verified Farmer Testimonials
+            </span>
+            <Link to="/admin/reviews" className="admin-metric-link" title="Manage Reviews">
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Metric 4: Commercial & Farmer Inquiries */}
+        <div className="admin-metric-card">
+          <div className="admin-metric-card-top">
+            <div className="admin-metric-icon-box purple">
+              <Mail size={22} />
+            </div>
+            <span className={`admin-metric-badge ${pendingInquiries > 0 ? 'warning' : 'success'}`}>
+              <Clock size={12} />
+              {pendingInquiries} Pending
+            </span>
+          </div>
+          <div className="admin-metric-value-wrap">
+            <h3 className="admin-metric-number">{totalInquiries}</h3>
+            <span className="admin-metric-title">Inquiries & Leads</span>
+          </div>
+          <div className="admin-metric-footer">
+            <span className="admin-metric-detail">
+              {resolvedInquiries} Resolved • {inProgressInquiries} In Progress
+            </span>
+            <Link to="/admin/inquiries" className="admin-metric-link" title="Manage Inquiries">
+              <ArrowUpRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Main 2-Column Live Analytics Grid */}
+      <div className="admin-dashboard-two-col">
+        {/* Left Column: Recent Dealer & Buyer Inquiries */}
+        <div className="admin-card-container" style={{ margin: 0 }}>
+          <div className="admin-card-header-bar">
+            <div>
+              <h2 className="admin-widget-title">Recent Dealer & Farmer Inquiries</h2>
+              <p className="admin-widget-sub">Latest procurement leads and agronomy support requests</p>
+            </div>
+            <Link to="/admin/inquiries" className="btn-admin-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
+              <span>View All Leads</span>
+              <ArrowRight size={13} />
+            </Link>
+          </div>
+
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '32%' }}>Sender</th>
+                  <th style={{ width: '36%' }}>Subject / Requirement</th>
+                  <th style={{ width: '18%' }}>Status</th>
+                  <th style={{ width: '14%', textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentInquiries.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                      No incoming inquiries recorded.
+                    </td>
+                  </tr>
+                ) : (
+                  recentInquiries.map((inq) => (
+                    <tr key={inq.id}>
+                      <td>
+                        <div>
+                          <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a' }}>
+                            {inq.name}
+                          </strong>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                            {inq.email}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div>
+                          <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#334155', display: 'block' }}>
+                            {inq.subject}
+                          </span>
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                            {inq.message ? inq.message.slice(0, 48) + '...' : 'No details'}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`admin-badge ${inq.status === 'Resolved' ? 'resolved' : inq.status === 'In Progress' ? 'in-progress' : 'pending'}`}>
+                          ● {inq.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link
+                          to={`/admin/inquiries/edit/${inq.id}`}
+                          className="btn-table-action edit"
+                          title="Open Inquiry"
+                        >
+                          <span>Review</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Column: Catalog Categories & Compliance Overview */}
+        <div className="admin-dashboard-right-stack">
+          {/* Active Product Lines Card */}
+          <div className="admin-card-container" style={{ margin: 0 }}>
+            <div className="admin-card-header-bar">
               <div>
-                <h2 className="admin-stat-card-title">REVIEWS & INQUIRIES OVERVIEW</h2>
-                <p className="admin-stat-card-subtitle">
-                  Farmer testimonials, dealer inquiries, and response tracking
-                </p>
+                <h2 className="admin-widget-title">Agrochemical Catalog Lines</h2>
+                <p className="admin-widget-sub">Primary categories and active formulations count</p>
               </div>
-              <div className="admin-stat-card-icon">📬</div>
+              <Link to="/admin/products" className="btn-admin-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
+                <span>Manage</span>
+              </Link>
             </div>
 
-            <div className="admin-stat-metrics-row">
-              <div className="admin-metric-box">
-                <span className="admin-metric-value">{totalReviews}</span>
-                <span className="admin-metric-label">CUSTOMER REVIEWS</span>
-                <span style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 700, marginTop: '2px' }}>
-                  ⭐ {averageRating}/5 Avg Rating ({verifiedReviews} Verified)
-                </span>
-              </div>
-              <div className="admin-metric-box">
-                <span className="admin-metric-value">{totalInquiries}</span>
-                <span className="admin-metric-label">TOTAL INQUIRIES</span>
-                <span style={{ fontSize: '0.75rem', color: pendingInquiries > 0 ? 'var(--admin-danger)' : 'var(--admin-success)', fontWeight: 700, marginTop: '2px' }}>
-                  ● {pendingInquiries} Pending &bull; {resolvedInquiries} Resolved
-                </span>
-              </div>
+            <div className="admin-product-category-list">
+              {products.map((prod) => (
+                <div key={prod.id} className="admin-category-quick-item">
+                  <img
+                    src={prod.image || '/images/products/premium_dummy.jpg'}
+                    alt={prod.name}
+                    className="admin-cat-thumb"
+                    onError={(e) => {
+                      e.target.src = '/images/products/premium_dummy.jpg';
+                    }}
+                  />
+                  <div className="admin-cat-info">
+                    <span className="admin-cat-name">{prod.name}</span>
+                    <span className="admin-cat-meta">
+                      {prod.category} • {prod.features?.length || 0} Features
+                    </span>
+                  </div>
+                  <span className={`admin-badge-status ${prod.status?.toLowerCase() === 'active' ? 'active' : 'inactive'}`}>
+                    <span className="status-dot"></span>
+                    {prod.status || 'Active'}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="admin-stat-card-footer">
-            <span className="admin-stat-badge" style={{ background: 'var(--admin-info-soft)', color: 'var(--admin-info)' }}>
-              <span>💬</span> Farmer & Dealer Engagement Active
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/reviews" className="btn-table-action view">
-                VIEW REVIEWS →
-              </Link>
-              <Link to="/admin/inquiries" className="btn-table-action view">
-                VIEW INQUIRIES →
-              </Link>
+          {/* Compliance & Quality Assurance Banner */}
+          <div className="admin-compliance-card">
+            <div className="admin-compliance-header">
+              <ShieldCheck size={20} className="text-emerald-400" />
+              <span className="admin-compliance-title">Agrochemical Quality Compliance</span>
+            </div>
+            <p className="admin-compliance-text">
+              All listed product formulations strictly comply with Central Insecticides Board & Registration Committee (CIB & RC) and ISO 9001:2015 standards.
+            </p>
+            <div className="admin-compliance-badges">
+              <span className="admin-comp-pill">ISO 9001:2015</span>
+              <span className="admin-comp-pill">CIB & RC Certified</span>
+              <span className="admin-comp-pill">Lab Verified Purity</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* QUICK SECTION DIRECTORY */}
-      <div className="admin-card-container">
+      {/* Module Directory Section */}
+      <div className="admin-card-container" style={{ marginTop: '2rem' }}>
         <div className="admin-card-header-bar">
           <div>
-            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-              ADMINISTRATION SECTIONS
-            </h3>
-            <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-              Direct access to CRUD management for all admin modules
-            </span>
+            <h2 className="admin-widget-title">Administration Modules Directory</h2>
+            <p className="admin-widget-sub">Direct access to manage catalog, formulations, reviews, and inquiries</p>
           </div>
         </div>
 
-        <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-          {/* Menu 1: PRODUCT */}
-          <div style={{ border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '1.25rem', background: '#fafbfc' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>📦</span>
-              <span className="admin-badge category">{products.length} Items</span>
+        <div className="admin-modules-directory-grid">
+          {/* Module 1: Product Categories */}
+          <div className="admin-dir-module-card">
+            <div className="admin-dir-card-header">
+              <div className="admin-dir-icon emerald">
+                <Package size={20} />
+              </div>
+              <span className="admin-badge category">{products.length} Records</span>
             </div>
-            <h4 style={{ margin: '0 0 0.4rem', textTransform: 'uppercase', fontSize: '0.95rem', fontWeight: 800 }}>PRODUCT</h4>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-              Manage top-level agricultural product categories and chemical classifications.
+            <h3 className="admin-dir-title">Products Catalog</h3>
+            <p className="admin-dir-desc">
+              Manage top-level agricultural product lines, formulations, and publishing status.
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/products" className="btn-table-action view" style={{ flex: 1, justifyContent: 'center' }}>
-                LIST
+            <div className="admin-dir-actions">
+              <Link to="/admin/products" className="btn-table-action view" style={{ flex: 1 }}>
+                View List
               </Link>
-              <Link to="/admin/products/add" className="btn-table-action edit" style={{ flex: 1, justifyContent: 'center' }}>
-                ADD
+              <Link to="/admin/products/add" className="btn-table-action edit" style={{ flex: 1 }}>
+                Add New
               </Link>
             </div>
           </div>
 
-          {/* Menu 2: SUB-PRODUCT */}
-          <div style={{ border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '1.25rem', background: '#fafbfc' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>🧪</span>
-              <span className="admin-badge category">{subProducts.length} Items</span>
+          {/* Module 2: Sub-Products */}
+          <div className="admin-dir-module-card">
+            <div className="admin-dir-card-header">
+              <div className="admin-dir-icon blue">
+                <FlaskConical size={20} />
+              </div>
+              <span className="admin-badge category">{subProducts.length} Records</span>
             </div>
-            <h4 style={{ margin: '0 0 0.4rem', textTransform: 'uppercase', fontSize: '0.95rem', fontWeight: 800 }}>SUB-PRODUCT</h4>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-              Manage detailed formulation products (Insecticides, Fungicides, Herbicides).
+            <h3 className="admin-dir-title">Sub-Product Molecules</h3>
+            <p className="admin-dir-desc">
+              Manage chemical technical molecules, dosage rates, and crop recommendations.
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/sub-products" className="btn-table-action view" style={{ flex: 1, justifyContent: 'center' }}>
-                LIST
+            <div className="admin-dir-actions">
+              <Link to="/admin/sub-products" className="btn-table-action view" style={{ flex: 1 }}>
+                View List
               </Link>
-              <Link to="/admin/sub-products/add" className="btn-table-action edit" style={{ flex: 1, justifyContent: 'center' }}>
-                ADD
+              <Link to="/admin/sub-products/add" className="btn-table-action edit" style={{ flex: 1 }}>
+                Add New
               </Link>
             </div>
           </div>
 
-          {/* Menu 3: CUSTOMER REVIEW */}
-          <div style={{ border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '1.25rem', background: '#fafbfc' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>⭐</span>
+          {/* Module 3: Customer Reviews */}
+          <div className="admin-dir-module-card">
+            <div className="admin-dir-card-header">
+              <div className="admin-dir-icon amber">
+                <Star size={20} />
+              </div>
               <span className="admin-badge approved">{reviews.length} Reviews</span>
             </div>
-            <h4 style={{ margin: '0 0 0.4rem', textTransform: 'uppercase', fontSize: '0.95rem', fontWeight: 800 }}>CUSTOMER REVIEW</h4>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-              Manage verified grower ratings, testimonials, and crop yield reviews.
+            <h3 className="admin-dir-title">Customer Reviews</h3>
+            <p className="admin-dir-desc">
+              Manage verified grower testimonials, crop feedback, and public ratings.
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/reviews" className="btn-table-action view" style={{ flex: 1, justifyContent: 'center' }}>
-                LIST
+            <div className="admin-dir-actions">
+              <Link to="/admin/reviews" className="btn-table-action view" style={{ flex: 1 }}>
+                View List
               </Link>
-              <Link to="/admin/reviews/add" className="btn-table-action edit" style={{ flex: 1, justifyContent: 'center' }}>
-                ADD
+              <Link to="/admin/reviews/add" className="btn-table-action edit" style={{ flex: 1 }}>
+                Add Review
               </Link>
             </div>
           </div>
 
-          {/* Menu 4: INQUIRY */}
-          <div style={{ border: '1px solid var(--admin-border)', borderRadius: '8px', padding: '1.25rem', background: '#fafbfc' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '1.3rem' }}>📬</span>
+          {/* Module 4: Inquiries */}
+          <div className="admin-dir-module-card">
+            <div className="admin-dir-card-header">
+              <div className="admin-dir-icon purple">
+                <Mail size={20} />
+              </div>
               <span className="admin-badge pending">{pendingInquiries} Pending</span>
             </div>
-            <h4 style={{ margin: '0 0 0.4rem', textTransform: 'uppercase', fontSize: '0.95rem', fontWeight: 800 }}>INQUIRY</h4>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-              Track dealer requests, bulk procurement inquiries, and grower support messages.
+            <h3 className="admin-dir-title">Dealer Inquiries</h3>
+            <p className="admin-dir-desc">
+              Track distributor inquiries, bulk order leads, and agronomy questions.
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Link to="/admin/inquiries" className="btn-table-action view" style={{ flex: 1, justifyContent: 'center' }}>
-                LIST
+            <div className="admin-dir-actions">
+              <Link to="/admin/inquiries" className="btn-table-action view" style={{ flex: 1 }}>
+                View Leads
               </Link>
-              <Link to="/admin/inquiries/add" className="btn-table-action edit" style={{ flex: 1, justifyContent: 'center' }}>
-                CREATE
+              <Link to="/admin/inquiries/add" className="btn-table-action edit" style={{ flex: 1 }}>
+                Create Lead
               </Link>
             </div>
           </div>
