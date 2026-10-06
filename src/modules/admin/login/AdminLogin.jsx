@@ -12,6 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useToast } from '../../../context/ToastContext';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -22,6 +23,7 @@ export default function AdminLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { login, isAuthenticated, isSuperAdmin, authError, setAuthError, lockoutTime } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -62,7 +64,7 @@ export default function AdminLogin() {
     if (authError) setAuthError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = { email: '', password: '', form: '' };
     let hasError = false;
@@ -79,18 +81,27 @@ export default function AdminLogin() {
 
     if (hasError) {
       setErrors(newErrors);
+      showToast('Please fill in all required fields.', 'error');
       return;
     }
 
     setIsSubmitting(true);
-    const result = login(email, password, rememberMe);
-    setIsSubmitting(false);
-
-    if (result.success) {
-      const from = location.state?.from?.pathname || '/admin/dashboard';
-      navigate(from, { replace: true });
-    } else {
-      setErrors((prev) => ({ ...prev, form: result.error }));
+    try {
+      const result = await login(email, password, rememberMe);
+      if (result.success) {
+        showToast('Login Successful! Welcome to Admin Portal', 'success');
+        const from = location.state?.from?.pathname || '/admin/dashboard';
+        navigate(from, { replace: true });
+      } else {
+        setErrors((prev) => ({ ...prev, form: result.error }));
+        showToast(result.error || 'Login failed', 'error');
+      }
+    } catch (err) {
+      const errMsg = err.message || 'Login failed';
+      setErrors((prev) => ({ ...prev, form: errMsg }));
+      showToast(errMsg, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -119,7 +130,7 @@ export default function AdminLogin() {
                 }}
               />
               <div className="admin-agro-titles">
-                <span className="admin-agro-company-name">REDBERRY AGRI SCIENCES</span>
+                <span className="admin-agro-company-name">Redberry Agri Sciences</span>
                 <h2 className="admin-agro-headline">
                   Advanced Agrochemicals & Crop Solutions
                 </h2>

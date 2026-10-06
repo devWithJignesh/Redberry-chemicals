@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Star,
@@ -11,58 +11,92 @@ import {
   ShieldCheck,
   ThumbsUp,
   Send,
-  Sprout,
+  MapPin,
 } from "lucide-react";
 import Container from "@/components/common/Container";
-import { CUSTOMER_REVIEWS, CustomerReview } from "@/data/reviews";
+import { CustomerReview } from "@/data/reviews";
 import { COMPANY } from "@/constants";
+import { getReviewsApi, createReviewApi } from "@/api/reviewApi";
 
 export default function CustomerReviewsPage() {
-  const [reviews, setReviews] = useState<CustomerReview[]>(CUSTOMER_REVIEWS);
+  const [reviews, setReviews] = useState<CustomerReview[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // New review form state
+  // New review form state (only: name, address, description, rate)
   const [newName, setNewName] = useState("");
-  const [newLocation, setNewLocation] = useState("");
-  const [newRole, setNewRole] = useState("");
-  const [newCrop, setNewCrop] = useState("");
+  const [newAddress, setNewAddress] = useState("");
   const [newRate, setNewRate] = useState(5);
-  const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || !newDesc.trim()) return;
+  const fetchLiveReviews = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getReviewsApi();
+      if (res && res.success && Array.isArray(res.data)) {
+        const mapped: CustomerReview[] = res.data.map((r: any) => ({
+          id: r._id || r.id,
+          name: r.name,
+          address: r.address || r.location || 'India',
+          description: r.description || r.review || r.title || '',
+          rate: Number(r.rate) || 5,
+          image: r.image || '/images/reviews/farmer_1.png',
+        }));
+        setReviews(mapped);
+      }
+    } catch (err) {
+      console.warn('Error fetching live reviews:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const newReviewItem: CustomerReview = {
-      id: `rev-${Date.now()}`,
+  useEffect(() => {
+    fetchLiveReviews();
+  }, []);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newDesc.trim() || !newAddress.trim()) return;
+
+    setIsSubmitting(true);
+
+    const newReviewPayload = {
       name: newName.trim(),
-      location: newLocation.trim() || "India",
-      role: newRole.trim() || "Commercial Farmer",
-      cropOrCategory: newCrop.trim() || "Agro Formulations",
-      rate: newRate,
-      date: "Just Now",
-      title: newTitle.trim() || "Outstanding crop results",
+      address: newAddress.trim(),
       description: newDesc.trim(),
-      verified: true,
-      image: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80",
+      rate: Number(newRate) || 5,
+      image: "/images/reviews/farmer_1.png",
     };
 
-    setReviews([newReviewItem, ...reviews]);
-    setSubmittedSuccess(true);
-    setTimeout(() => {
-      setIsFormOpen(false);
-      setSubmittedSuccess(false);
-      setNewName("");
-      setNewLocation("");
-      setNewRole("");
-      setNewCrop("");
-      setNewRate(5);
-      setNewTitle("");
-      setNewDesc("");
-    }, 2000);
+    try {
+      const res = await createReviewApi(newReviewPayload);
+      const serverId = res?.data?._id || `rev-${Date.now()}`;
+      
+      const newReviewItem: CustomerReview = {
+        id: serverId,
+        ...newReviewPayload,
+      };
+
+      setReviews((prev) => [newReviewItem, ...prev]);
+      setSubmittedSuccess(true);
+
+      setTimeout(() => {
+        setIsFormOpen(false);
+        setSubmittedSuccess(false);
+        setNewName("");
+        setNewAddress("");
+        setNewRate(5);
+        setNewDesc("");
+      }, 2000);
+    } catch (err) {
+      console.warn('API error submitting review:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredReviews = reviews.filter((r) => {
@@ -71,15 +105,20 @@ export default function CustomerReviewsPage() {
     return (
       r.name.toLowerCase().includes(q) ||
       r.description.toLowerCase().includes(q) ||
-      r.cropOrCategory.toLowerCase().includes(q) ||
-      r.location.toLowerCase().includes(q) ||
-      r.role.toLowerCase().includes(q)
+      (r.address && r.address.toLowerCase().includes(q)) ||
+      (r.location && r.location.toLowerCase().includes(q))
     );
   });
 
+  // Calculate average rating dynamically
+  const totalCount = reviews.length;
+  const avgRating = totalCount > 0 
+    ? (reviews.reduce((acc, curr) => acc + (Number(curr.rate) || 5), 0) / totalCount).toFixed(1)
+    : '5.0';
+
   return (
     <div className="bg-[#FAF9F6] min-h-screen text-slate-800">
-      {/* ─── Hero Header (Redberry Brand Navy + Red Theme) ─── */}
+      {/* Hero Header */}
       <section className="relative flex h-[340px] items-center overflow-hidden bg-brand-navy">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-navy via-brand-navy-light to-brand-red-dark/70" />
         <Container className="relative z-10">
@@ -90,17 +129,17 @@ export default function CustomerReviewsPage() {
             Customer Reviews & Ratings
           </h1>
           <p className="mt-4 max-w-xl text-white/80 text-sm md:text-base leading-relaxed">
-            Real experiences from farmers, agronomists, and chemical dealers across 15+ states who rely on {COMPANY.name} since 2020.
+            Real experiences from customers across India who rely on {COMPANY.name}.
           </p>
         </Container>
       </section>
 
-      {/* ─── Trust Metrics Overview ─── */}
+      {/* Trust Metrics Overview */}
       <Container className="py-12">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
           <div className="rounded-3xl bg-white p-7 border border-slate-200/90 shadow-sm flex items-center gap-5">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 font-bold text-2xl font-mono border border-amber-200/60">
-              4.9
+              {avgRating}
             </div>
             <div>
               <div className="flex items-center text-amber-400 mb-1">
@@ -108,8 +147,8 @@ export default function CustomerReviewsPage() {
                   <Star key={s} size={18} className="fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <div className="text-sm font-bold text-slate-800">Average Rating (5 to 0)</div>
-              <div className="text-xs text-slate-500">Based on 350+ Grower Reviews</div>
+              <div className="text-sm font-bold text-slate-800">Average Rating</div>
+              <div className="text-xs text-slate-500">Based on {totalCount}+ Customer Reviews</div>
             </div>
           </div>
 
@@ -131,19 +170,19 @@ export default function CustomerReviewsPage() {
             <div>
               <div className="text-2xl font-bold font-mono text-slate-900">98.4%</div>
               <div className="text-sm font-bold text-slate-800">Repeat Orders</div>
-              <div className="text-xs text-slate-500">From Dealers Across 15+ States</div>
+              <div className="text-xs text-slate-500">Across 15+ States</div>
             </div>
           </div>
         </div>
 
-        {/* ─── Action Bar (Tabs Removed; Theme Color Search & Write Review) ─── */}
+        {/* Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-14 pb-4 border-b border-slate-200/80">
           <div>
             <h2 className="font-heading text-lg font-bold text-brand-navy">
-              Verified Farmer & Dealer Experiences
+              Customer Experiences
             </h2>
             <p className="text-xs text-slate-500">
-              Showing {filteredReviews.length} authentic customer feedback records
+              Showing {filteredReviews.length} customer feedback records
             </p>
           </div>
 
@@ -152,7 +191,7 @@ export default function CustomerReviewsPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
               <input
                 type="text"
-                placeholder="Search crop, chemical, farmer..."
+                placeholder="Search reviews by name or address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-full border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-xs text-slate-800 placeholder-slate-400 shadow-sm focus:border-brand-red focus:outline-none focus:ring-1 focus:ring-brand-red"
@@ -168,113 +207,95 @@ export default function CustomerReviewsPage() {
           </div>
         </div>
 
-        {/* ─── Reviews Grid: Applying Website Theme Color & Offset Design ─── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 sm:gap-8 mb-20">
-          <AnimatePresence>
-            {filteredReviews.map((review, idx) => (
-              <motion.div
-                key={review.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.35, delay: idx * 0.04 }}
-                className="group relative"
-              >
-                {/* Offset Red Accent Backplate Layer (Brand Theme Color) */}
-                <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 rounded-[2.3rem] bg-gradient-to-br from-brand-red to-rose-600 shadow-lg shadow-red-500/15 transition-transform duration-300 group-hover:translate-x-3 group-hover:translate-y-3 group-hover:shadow-red-500/25" />
+        {/* Reviews Grid */}
+        {isLoading ? (
+          <div className="py-20 text-center text-slate-400 text-sm">
+            Loading reviews from database...
+          </div>
+        ) : filteredReviews.length === 0 ? (
+          <div className="py-20 text-center text-slate-400 text-sm">
+            No reviews found. Be the first to share your experience!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 sm:gap-8 mb-20">
+            <AnimatePresence>
+              {filteredReviews.map((review, idx) => (
+                <motion.div
+                  key={review.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.35, delay: idx * 0.04 }}
+                  className="group relative"
+                >
+                  {/* Offset Red Accent Backplate */}
+                  <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 rounded-[2.3rem] bg-gradient-to-br from-brand-red to-rose-600 shadow-lg shadow-red-500/15 transition-transform duration-300 group-hover:translate-x-3 group-hover:translate-y-3 group-hover:shadow-red-500/25" />
 
-                {/* Main Card (Website Theme Crisp White) */}
-                <div className="relative flex flex-col justify-between rounded-[2.3rem] bg-white p-7 md:p-8 text-center border border-slate-200/90 shadow-md min-h-[460px] transition-all duration-300 group-hover:shadow-xl">
-                  <div>
-                    {/* Protruding Customer Portrait Avatar */}
-                    <div className="relative -mt-16 mb-4 flex justify-center">
-                      <div className="relative h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl ring-2 ring-brand-red shadow-red-500/20 shrink-0 aspect-square transition-transform duration-300 group-hover:scale-105">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={review.image}
-                          alt={review.name}
-                          className="h-full w-full object-cover aspect-square"
-                          loading="lazy"
-                        />
-                        {review.verified && (
-                          <div
-                            className="absolute bottom-0 right-0 rounded-full bg-emerald-600 p-0.5 text-white ring-2 ring-white"
-                            title="Verified Customer"
-                          >
-                            <CheckCircle2 size={12} className="fill-emerald-600 text-white" />
-                          </div>
-                        )}
+                  {/* Main Card */}
+                  <div className="relative flex flex-col justify-between rounded-[2.3rem] bg-white p-7 md:p-8 text-center border border-slate-200/90 shadow-md min-h-[380px] transition-all duration-300 group-hover:shadow-xl">
+                    <div>
+                      {/* Customer Portrait Avatar */}
+                      <div className="relative -mt-16 mb-4 flex justify-center">
+                        <div className="relative h-20 w-20 overflow-hidden rounded-full border-4 border-white shadow-xl ring-2 ring-brand-red shadow-red-500/20 shrink-0 aspect-square transition-transform duration-300 group-hover:scale-105">
+                          <img
+                            src={review.image || '/images/reviews/farmer_1.png'}
+                            alt={review.name}
+                            className="h-full w-full object-cover aspect-square"
+                            loading="lazy"
+                            onError={(e: any) => {
+                              e.target.src = '/images/reviews/farmer_1.png';
+                            }}
+                          />
+                        </div>
                       </div>
+
+                      {/* Customer Name */}
+                      <h3 className="font-heading text-lg font-bold text-brand-navy group-hover:text-brand-red transition-colors">
+                        {review.name}
+                      </h3>
+
+                      {/* Address */}
+                      <p className="mt-1 text-xs text-slate-500 font-medium flex items-center justify-center gap-1">
+                        <MapPin size={12} className="text-slate-400" />
+                        {review.address || review.location}
+                      </p>
+
+                      {/* Quote Mark */}
+                      <div className="my-2.5 flex justify-center text-brand-red">
+                        <Quote size={22} className="fill-brand-red text-brand-red" />
+                      </div>
+
+                      {/* Rating Stars */}
+                      <div className="mb-3 flex items-center justify-center gap-1 text-amber-400">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={14}
+                            className={
+                              star <= Math.floor(review.rate)
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-slate-200"
+                            }
+                          />
+                        ))}
+                        <span className="ml-1 text-[11px] font-mono font-bold text-slate-700">
+                          {review.rate.toFixed(1)} / 5.0
+                        </span>
+                      </div>
+
+                      {/* Review Description */}
+                      <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-normal">
+                        {review.description}
+                      </p>
                     </div>
-
-                    {/* Customer Name */}
-                    <h3 className="font-heading text-lg font-bold text-brand-navy group-hover:text-brand-red transition-colors">
-                      {review.name}
-                    </h3>
-
-                    {/* Role & Location */}
-                    <p className="mt-1 text-xs text-slate-500 font-medium">
-                      {review.role}
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {review.location}
-                    </p>
-
-                    {/* Red Quote Mark */}
-                    <div className="my-2.5 flex justify-center text-brand-red">
-                      <Quote size={22} className="fill-brand-red text-brand-red" />
-                    </div>
-
-                    {/* Rating Stars (5 to 0) */}
-                    <div className="mb-3 flex items-center justify-center gap-1 text-amber-400">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={14}
-                          className={
-                            star <= Math.floor(review.rate)
-                              ? "fill-amber-400 text-amber-400"
-                              : star - review.rate <= 0.5
-                              ? "fill-amber-300 text-amber-300"
-                              : "text-slate-200"
-                          }
-                        />
-                      ))}
-                      <span className="ml-1 text-[11px] font-mono font-bold text-slate-700">
-                        {review.rate.toFixed(1)} / 5.0
-                      </span>
-                    </div>
-
-                    {/* Review Title */}
-                    {review.title && (
-                      <h4 className="font-heading text-xs md:text-sm font-semibold text-brand-navy mb-2 leading-snug">
-                        "{review.title}"
-                      </h4>
-                    )}
-
-                    {/* Review Description */}
-                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-normal">
-                      {review.description}
-                    </p>
                   </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
-                  {/* Card Bottom Meta */}
-                  <div className="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold text-brand-red border border-red-100">
-                      <Sprout size={11} className="text-brand-red" />
-                      {review.cropOrCategory}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      {review.date}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {/* ─── Modal Form: Write a Customer Review ─── */}
+        {/* Modal Form: Write a Review */}
         <AnimatePresence>
           {isFormOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -296,21 +317,21 @@ export default function CustomerReviewsPage() {
                   </button>
                 </div>
                 <p className="text-xs text-slate-500 mb-6">
-                  Help other farmers and dealers across India by rating our agrochemicals, fertilizer purity, and delivery service.
+                  Help other customers across India by rating our products and service.
                 </p>
 
                 {submittedSuccess ? (
                   <div className="rounded-2xl bg-emerald-50 p-6 text-center border border-emerald-200">
                     <CheckCircle2 size={40} className="mx-auto text-emerald-600 mb-2" />
                     <h4 className="text-base font-bold text-emerald-800">Thank You For Your Review!</h4>
-                    <p className="text-xs text-emerald-700 mt-1">Your review has been successfully published.</p>
+                    <p className="text-xs text-emerald-700 mt-1">Your review has been successfully saved to our database.</p>
                   </div>
                 ) : (
                   <form onSubmit={handleReviewSubmit} className="space-y-4 text-xs">
-                    {/* Rating Selector: 5 to 0 */}
+                    {/* Rating Selector */}
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1.5">
-                        Rate Experience (5 to 0 Stars):
+                        Rating (1 to 5 Stars) *
                       </label>
                       <div className="flex items-center gap-2">
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -338,7 +359,7 @@ export default function CustomerReviewsPage() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Your Full Name *</label>
+                        <label className="block font-semibold text-slate-700 mb-1">Name *</label>
                         <input
                           type="text"
                           required
@@ -349,59 +370,26 @@ export default function CustomerReviewsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Location / State</label>
+                        <label className="block font-semibold text-slate-700 mb-1">Address *</label>
                         <input
                           type="text"
-                          value={newLocation}
-                          onChange={(e) => setNewLocation(e.target.value)}
+                          required
+                          value={newAddress}
+                          onChange={(e) => setNewAddress(e.target.value)}
                           placeholder="e.g. Anand, Gujarat"
                           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-brand-red focus:outline-none"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Role / Profession</label>
-                        <input
-                          type="text"
-                          value={newRole}
-                          onChange={(e) => setNewRole(e.target.value)}
-                          placeholder="e.g. Cotton Grower / Agro Dealer"
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-brand-red focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-slate-700 mb-1">Crop / Product Purchased</label>
-                        <input
-                          type="text"
-                          value={newCrop}
-                          onChange={(e) => setNewCrop(e.target.value)}
-                          placeholder="e.g. Cotton Protection / NPK"
-                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-brand-red focus:outline-none"
-                        />
-                      </div>
-                    </div>
-
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Review Headline</label>
-                      <input
-                        type="text"
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        placeholder="e.g. Exceptional yield increase and fast delivery"
-                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-brand-red focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block font-semibold text-slate-700 mb-1">Your Detailed Feedback *</label>
+                      <label className="block font-semibold text-slate-700 mb-1">Description *</label>
                       <textarea
                         required
                         rows={4}
                         value={newDesc}
                         onChange={(e) => setNewDesc(e.target.value)}
-                        placeholder="Describe your crop results, product quality, dosage performance, or delivery experience..."
+                        placeholder="Describe your experience and feedback..."
                         className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-brand-red focus:outline-none"
                       />
                     </div>
@@ -416,9 +404,10 @@ export default function CustomerReviewsPage() {
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-brand-red px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-red-700"
+                        disabled={isSubmitting}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-brand-red px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-red-700 disabled:opacity-50"
                       >
-                        <Send size={13} /> Submit Review
+                        <Send size={13} /> {isSubmitting ? 'Submitting...' : 'Submit Review'}
                       </button>
                     </div>
                   </form>

@@ -16,27 +16,27 @@ export default function AdminSidebar({ isCollapsed, onToggleCollapse, isMobileOp
 
   const navMenuItems = [
     {
-      label: 'DASHBOARD',
+      label: 'Dashboard',
       path: '/admin/dashboard',
       icon: LayoutDashboard,
     },
     {
-      label: 'PRODUCT',
+      label: 'Product',
       path: '/admin/products',
       icon: Package,
     },
     {
-      label: 'SUB-PRODUCT',
+      label: 'Sub-Product',
       path: '/admin/sub-products',
       icon: FlaskConical,
     },
     {
-      label: 'CUSTOMER REVIEW',
+      label: 'Customer Review',
       path: '/admin/reviews',
       icon: Star,
     },
     {
-      label: 'INQUIRY',
+      label: 'Inquiry',
       path: '/admin/inquiries',
       icon: Mail,
     },
@@ -59,8 +59,8 @@ export default function AdminSidebar({ isCollapsed, onToggleCollapse, isMobileOp
           </div>
           {!isCollapsed && (
             <div className="admin-sidebar-brand-text">
-              <span className="admin-brand-title">REDBERRY</span>
-              <span className="admin-brand-badge">SUPERADMIN PANEL</span>
+              <span className="admin-brand-title">Redberry</span>
+              <span className="admin-brand-badge">Super Admin Panel</span>
             </div>
           )}
         </Link>
@@ -78,7 +78,7 @@ export default function AdminSidebar({ isCollapsed, onToggleCollapse, isMobileOp
       {/* Navigation Links */}
       <div className="admin-sidebar-nav">
         {!isCollapsed && (
-          <div className="admin-nav-category-label">MANAGEMENT MENUS</div>
+          <div className="admin-nav-category-label">Management Menus</div>
         )}
 
         {navMenuItems.map((item) => {
@@ -118,7 +118,7 @@ export default function AdminSidebar({ isCollapsed, onToggleCollapse, isMobileOp
               {user?.name || 'Parth Patel'}
             </span>
             <span className="admin-sidebar-user-role">
-              {user?.role || 'SUPERADMIN'}
+              {user?.role || 'Super Admin'}
             </span>
           </div>
         )}

@@ -1,88 +1,101 @@
-import { useState, useMemo, useEffect } from 'react';
+/* ============================================
+   PRODUCT GRID COMPONENT
+   FILE: ProductGrid.jsx
+   Clean, Modern Agriculture Product Catalog
+   ============================================ */
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Search,
+  SlidersHorizontal,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Loader2,
+  Package,
+  Layers,
+  Leaf,
+  Bug,
+  Droplet,
+  FlaskConical,
+  Sparkles
+} from 'lucide-react';
+
 import ProductCard from '../ProductCard/ProductCard';
+import { getProductsApi } from '../../../../../api/productApi';
+import { PageSpinner } from '../../../../../components/common/Loader/PageSpinner';
 import './ProductGrid.css';
 
-export default function ProductGrid({ categories, activeFilter, onFilterChange }) {
+export function ProductGrid({ categories = [], activeFilter, onFilterChange }) {
+  const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 9, totalPages: 1 });
+  const [isLoading, setIsLoading] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  // Close drawer on escape key & manage body scroll lock on mobile
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && mobileDrawerOpen) {
-        setMobileDrawerOpen(false);
-      }
-    };
-    if (mobileDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [mobileDrawerOpen]);
-
-  const getCategoryIcon = (slug) => {
-    switch (slug) {
+  // Category Icon helper with Lucide icons
+  const renderCategoryIcon = (slug) => {
+    switch (slug?.toLowerCase()) {
       case 'all':
-        return '🌾';
+        return <Layers size={17} />;
       case 'insecticides':
-        return '🐛';
+        return <Bug size={17} />;
       case 'fungicides':
-        return '🍄';
+        return <FlaskConical size={17} />;
       case 'herbicides':
-        return '🌿';
+        return <Leaf size={17} />;
       case 'pgr-nutrition':
-        return '🧪';
+      case 'nutrition':
+        return <Droplet size={17} />;
       default:
-        return '🌱';
+        return <Package size={17} />;
     }
   };
 
-  // Flatten all products across categories with memoization
-  const allProducts = useMemo(() => {
-    return categories.flatMap((cat) => cat.products);
-  }, [categories]);
+  // Fetch Products from Backend API with Server-Side Pagination & Searching
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getProductsApi({
+        page,
+        limit: 9,
+        search: searchQuery.trim() || undefined,
+        category: activeFilter !== 'all' ? activeFilter : undefined,
+      });
 
-  // Selected category object
-  const activeCategoryObj = useMemo(() => {
-    return categories.find((cat) => cat.slug === activeFilter) || null;
-  }, [categories, activeFilter]);
-
-  // Filter products by category and search input
-  const filteredProducts = useMemo(() => {
-    let result = allProducts;
-
-    if (activeFilter !== 'all') {
-      result = result.filter((p) => p.category === activeFilter);
+      if (res.success && res.data) {
+        setProducts(res.data.products || []);
+        setPagination(res.data.pagination || { total: 0, page: 1, limit: 9, totalPages: 1 });
+      }
+    } catch (err) {
+      console.error('Error fetching products from API:', err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [page, searchQuery, activeFilter]);
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.technicalName.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          (p.targetPests && p.targetPests.some((pest) => pest.toLowerCase().includes(q))) ||
-          (p.crops && p.crops.some((crop) => crop.toLowerCase().includes(q)))
-      );
-    }
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
-    return result;
-  }, [allProducts, activeFilter, searchQuery]);
-
+  // Handle Category Select
   const handleCategorySelect = (slug) => {
+    setPage(1);
     onFilterChange(slug);
     if (mobileDrawerOpen) {
       setMobileDrawerOpen(false);
     }
   };
 
+  const handleSearchChange = (e) => {
+    setPage(1);
+    setSearchQuery(e.target.value);
+  };
+
   const handleResetFilters = () => {
+    setPage(1);
     setSearchQuery('');
     onFilterChange('all');
     if (mobileDrawerOpen) {
@@ -90,227 +103,260 @@ export default function ProductGrid({ categories, activeFilter, onFilterChange }
     }
   };
 
+  // Active Category metadata
+  const activeCategoryObj = categories.find((cat) => cat.slug === activeFilter) || null;
   const hasActiveFilters = activeFilter !== 'all' || searchQuery.trim() !== '';
 
   return (
-    <div className="product-catalog-layout">
-      {/* Mobile Top Bar: Quick Search & Filter Drawer Trigger */}
-      <div className="mobile-filter-header">
-        <div className="mobile-search-wrapper">
-          <svg className="sidebar-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+    <div className="pg-catalog-layout">
+      {/* ── Mobile Search & Filter Trigger Bar ── */}
+      <div className="pg-mobile-topbar">
+        <div className="pg-mobile-search-box">
+          <Search size={16} className="pg-search-icon" />
           <input
             type="text"
-            placeholder="Search chemicals, pests, crops..."
+            placeholder="Search products or active ingredients..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="mobile-search-input"
+            onChange={handleSearchChange}
+            className="pg-mobile-search-input"
             aria-label="Search agrochemicals"
           />
           {searchQuery && (
             <button
               type="button"
-              className="search-clear-btn"
-              onClick={() => setSearchQuery('')}
+              className="pg-search-clear-btn"
+              onClick={() => { setSearchQuery(''); setPage(1); }}
               aria-label="Clear search"
             >
-              ✕
+              <X size={14} />
             </button>
           )}
         </div>
 
         <button
           type="button"
-          className={`mobile-drawer-toggle-btn ${hasActiveFilters ? 'has-filter' : ''}`}
+          className={`pg-mobile-drawer-btn ${hasActiveFilters ? 'has-active' : ''}`}
           onClick={() => setMobileDrawerOpen(true)}
-          aria-label="Open filter sidebar"
+          aria-label="Filter categories"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="4" y1="21" x2="4" y2="14"></line>
-            <line x1="4" y1="10" x2="4" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12" y2="3"></line>
-            <line x1="20" y1="21" x2="20" y2="16"></line>
-            <line x1="20" y1="12" x2="20" y2="3"></line>
-            <line x1="1" y1="14" x2="7" y2="14"></line>
-            <line x1="9" y1="8" x2="15" y2="8"></line>
-            <line x1="17" y1="16" x2="23" y2="16"></line>
-          </svg>
-          <span>Categories</span>
-          {activeFilter !== 'all' && (
-            <span className="mobile-active-dot" />
-          )}
+          <SlidersHorizontal size={16} />
+          <span>Filters</span>
+          {activeFilter !== 'all' && <span className="pg-mobile-dot" />}
         </button>
       </div>
 
-      {/* Main Grid & Products (Left Column on Desktop) */}
-      <main className="product-main-content">
-        {/* Catalog Control Header: Shows active filter status & total found */}
-        <div className="catalog-status-header">
-          <div className="catalog-status-left">
-            <h2 className="catalog-status-title">
-              {activeCategoryObj ? activeCategoryObj.name : 'All Agrochemicals'}
+      {/* ── LEFT COLUMN: Main Catalog Content ── */}
+      <main className="pg-main-content">
+        {/* Status & Active Chips Header */}
+        <div className="pg-status-bar">
+          <div className="pg-status-left">
+            <h2 className="pg-status-title">
+              {activeCategoryObj ? activeCategoryObj.name : 'All Products'}
             </h2>
-            <span className="catalog-count-pill">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'Product' : 'Products'} Available
+            <span className="pg-count-badge">
+              {pagination.total} {pagination.total === 1 ? 'Product' : 'Products'} Available
             </span>
           </div>
 
           {hasActiveFilters && (
-            <div className="catalog-active-chips">
+            <div className="pg-active-chips-wrap">
               {activeFilter !== 'all' && (
-                <span className="filter-active-tag">
-                  {getCategoryIcon(activeFilter)} {activeCategoryObj?.name}
-                  <button type="button" onClick={() => onFilterChange('all')} aria-label="Remove category filter">✕</button>
+                <span className="pg-filter-chip">
+                  <span className="pg-chip-icon">{renderCategoryIcon(activeFilter)}</span>
+                  <span>{activeCategoryObj?.name || activeFilter}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCategorySelect('all')}
+                    aria-label="Remove category filter"
+                    className="pg-chip-remove"
+                  >
+                    <X size={12} />
+                  </button>
                 </span>
               )}
+
               {searchQuery.trim() && (
-                <span className="filter-active-tag">
-                  &ldquo;{searchQuery}&rdquo;
-                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Remove search query">✕</button>
+                <span className="pg-filter-chip">
+                  <span>&ldquo;{searchQuery}&rdquo;</span>
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setPage(1); }}
+                    aria-label="Clear search query"
+                    className="pg-chip-remove"
+                  >
+                    <X size={12} />
+                  </button>
                 </span>
               )}
+
               <button
                 type="button"
-                className="reset-all-link"
+                className="pg-btn-clear-all"
                 onClick={handleResetFilters}
               >
-                Clear All
+                <RotateCcw size={12} />
+                <span>Clear All</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Category Description Banner if a specific category is active */}
-        {activeCategoryObj && (
-          <div className="category-active-banner">
-            <div className="category-banner-header">
-              <span className="category-banner-icon">{getCategoryIcon(activeCategoryObj.slug)}</span>
-              <div>
-                <h3 className="category-banner-title">
-                  {activeCategoryObj.name} Formulations
-                </h3>
-                <p className="category-banner-desc">
-                  {activeCategoryObj.description || activeCategoryObj.shortDesc}
-                </p>
-              </div>
+        {/* Category Description Banner */}
+        {activeCategoryObj && (activeCategoryObj.description || activeCategoryObj.shortDesc) && (
+          <div className="pg-category-banner">
+            <div className="pg-cb-icon-wrap">
+              {renderCategoryIcon(activeCategoryObj.slug)}
+            </div>
+            <div className="pg-cb-text">
+              <h4>{activeCategoryObj.name} Solutions</h4>
+              <p>{activeCategoryObj.description || activeCategoryObj.shortDesc}</p>
             </div>
           </div>
         )}
 
-        {/* Product Cards Grid */}
-        {filteredProducts.length > 0 ? (
-          <div className="products-catalog-grid" key={`${activeFilter}-${searchQuery}`}>
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+        {/* Products Grid / Loading / Empty State */}
+        {isLoading ? (
+          <PageSpinner
+            title="Loading Products..."
+            subtitle="Fetching catalog formulations and active ingredients"
+            fullPage={false}
+          />
+        ) : products.length > 0 ? (
+          <>
+            <div className="pg-products-grid">
+              {products.map((product) => (
+                <ProductCard key={product._id || product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="pg-pagination-bar">
+                <button
+                  type="button"
+                  className="pg-page-nav-btn"
+                  disabled={page <= 1}
+                  onClick={() => {
+                    setPage((p) => Math.max(1, p - 1));
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                  <span>Previous</span>
+                </button>
+
+                <div className="pg-page-indicator">
+                  <span>Page <strong>{pagination.page}</strong> of <strong>{pagination.totalPages}</strong></span>
+                </div>
+
+                <button
+                  type="button"
+                  className="pg-page-nav-btn"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => {
+                    setPage((p) => Math.min(pagination.totalPages, p + 1));
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                  }}
+                >
+                  <span>Next</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </>
         ) : (
-          <div className="no-products-found">
-            <div className="no-products-icon">🌾</div>
-            <h3>No Agrochemicals Matched Your Query</h3>
-            <p>Try searching for a different active ingredient, brand name, or reset the category filter.</p>
+          <div className="pg-empty-state">
+            <div className="pg-empty-icon-wrap">
+              <Package size={40} />
+            </div>
+            <h3>No Products Found</h3>
+            <p>No agrochemicals matched your current filter or search criteria. Try a different search term or reset filters.</p>
             <button
               type="button"
-              className="btn btn-primary"
-              style={{ marginTop: 'var(--space-4)' }}
+              className="pg-btn-reset"
               onClick={handleResetFilters}
             >
-              Reset Filters &amp; View All
+              <RotateCcw size={15} />
+              <span>Reset Filters &amp; View All</span>
             </button>
           </div>
         )}
       </main>
 
-      {/* Mobile Drawer Backdrop */}
+      {/* ── Mobile Drawer Backdrop ── */}
       {mobileDrawerOpen && (
         <div
-          className="sidebar-backdrop active"
+          className="pg-drawer-backdrop"
           onClick={() => setMobileDrawerOpen(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Right Sidebar on Desktop / Slide-over Drawer on Mobile */}
-      <aside className={`product-sidebar-right ${mobileDrawerOpen ? 'drawer-open' : ''}`}>
-        <div className="sidebar-sticky-inner">
+      {/* ── RIGHT COLUMN: Filter Sidebar ── */}
+      <aside className={`pg-sidebar ${mobileDrawerOpen ? 'drawer-open' : ''}`}>
+        <div className="pg-sidebar-inner">
           {/* Drawer Mobile Header */}
-          <div className="sidebar-drawer-header">
-            <div className="drawer-title-group">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="4" y1="21" x2="4" y2="14"></line>
-                <line x1="4" y1="10" x2="4" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12" y2="3"></line>
-                <line x1="20" y1="21" x2="20" y2="16"></line>
-                <line x1="20" y1="12" x2="20" y2="3"></line>
-                <line x1="1" y1="14" x2="7" y2="14"></line>
-                <line x1="9" y1="8" x2="15" y2="8"></line>
-                <line x1="17" y1="16" x2="23" y2="16"></line>
-              </svg>
+          <div className="pg-drawer-head">
+            <div className="pg-drawer-title">
+              <SlidersHorizontal size={17} />
               <span>Filter Catalog</span>
             </div>
             <button
               type="button"
-              className="drawer-close-btn"
+              className="pg-drawer-close"
               onClick={() => setMobileDrawerOpen(false)}
               aria-label="Close drawer"
             >
-              ✕
+              <X size={18} />
             </button>
           </div>
 
-          {/* Search Card Section (Desktop) */}
-          <div className="sidebar-card sidebar-search-card">
-            <label htmlFor="desktop-search-input" className="sidebar-card-label">
+          {/* Quick Search Card */}
+          <div className="pg-sidebar-card">
+            <div className="pg-card-label">
               <span>Quick Search</span>
               {searchQuery && (
                 <button
                   type="button"
-                  className="sidebar-clear-text-btn"
-                  onClick={() => setSearchQuery('')}
+                  className="pg-btn-clear-txt"
+                  onClick={() => { setSearchQuery(''); setPage(1); }}
                 >
                   Clear
                 </button>
               )}
-            </label>
-            <div className="sidebar-search-box">
-              <svg className="sidebar-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+            </div>
+            <div className="pg-search-input-wrap">
+              <Search size={16} className="pg-search-icon" />
               <input
                 id="desktop-search-input"
                 type="text"
-                placeholder="Search chemical, pest, crop..."
+                placeholder="Search chemical, active..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="sidebar-search-input"
+                onChange={handleSearchChange}
+                className="pg-search-input"
                 aria-label="Search agrochemicals"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  className="search-clear-btn"
-                  onClick={() => setSearchQuery('')}
+                  className="pg-search-clear-btn"
+                  onClick={() => { setSearchQuery(''); setPage(1); }}
                   aria-label="Clear search"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Categories Navigation Card */}
-          <div className="sidebar-card sidebar-categories-card">
-            <div className="sidebar-card-header">
-              <h3 className="sidebar-card-title">Agrochemical Categories</h3>
+          {/* Categories Filter Card */}
+          <div className="pg-sidebar-card">
+            <div className="pg-card-head-row">
+              <h3 className="pg-card-head-title">Categories</h3>
               {activeFilter !== 'all' && (
                 <button
                   type="button"
-                  className="sidebar-reset-btn"
+                  className="pg-btn-reset-cat"
                   onClick={() => handleCategorySelect('all')}
                 >
                   Reset
@@ -318,79 +364,50 @@ export default function ProductGrid({ categories, activeFilter, onFilterChange }
               )}
             </div>
 
-            <nav className="sidebar-category-list" aria-label="Agrochemical categories">
-              {/* All Agrochemicals Item */}
+            <nav className="pg-cat-list" aria-label="Product categories">
               <button
                 type="button"
-                className={`sidebar-cat-item ${activeFilter === 'all' ? 'active' : ''}`}
+                className={`pg-cat-btn ${activeFilter === 'all' ? 'active' : ''}`}
                 onClick={() => handleCategorySelect('all')}
               >
-                <div className="cat-item-left">
-                  <span className="cat-icon">{getCategoryIcon('all')}</span>
-                  <span className="cat-name">All Agrochemicals</span>
-                </div>
-                <div className="cat-item-right">
-                  <span className="cat-badge">{allProducts.length}</span>
-                  <svg className="cat-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </div>
+                <span className="pg-cat-icon-box">{renderCategoryIcon('all')}</span>
+                <span className="pg-cat-name">All Agrochemicals</span>
+                <ChevronRight size={14} className="pg-cat-arrow" />
               </button>
 
-              {/* Specific Categories */}
               {categories.map((cat) => {
                 const isActive = activeFilter === cat.slug;
                 return (
                   <button
                     key={cat.slug}
                     type="button"
-                    className={`sidebar-cat-item ${isActive ? 'active' : ''}`}
+                    className={`pg-cat-btn ${isActive ? 'active' : ''}`}
                     onClick={() => handleCategorySelect(cat.slug)}
                   >
-                    <div className="cat-item-left">
-                      <span className="cat-icon">{getCategoryIcon(cat.slug)}</span>
-                      <span className="cat-name">{cat.name}</span>
-                    </div>
-                    <div className="cat-item-right">
-                      <span className="cat-badge">{cat.products.length}</span>
-                      <svg className="cat-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
+                    <span className="pg-cat-icon-box">{renderCategoryIcon(cat.slug)}</span>
+                    <span className="pg-cat-name">{cat.name}</span>
+                    <ChevronRight size={14} className="pg-cat-arrow" />
                   </button>
                 );
               })}
             </nav>
           </div>
 
-          {/* Quick Technical Assistance & Inquiry Card */}
-          <div className="sidebar-card sidebar-help-card">
-            <div className="help-card-badge">B2B &amp; Bulk Supply</div>
-            <h4 className="help-card-title">Custom Agro Formulation?</h4>
-            <p className="help-card-desc">
-              Looking for custom chemical synthesis, batch export, or technical guidance for your crops?
-            </p>
-            <a href="/contact" className="help-card-btn">
-              <span>Request Quote</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </a>
+          {/* Trust Guarantee Mini Card */}
+          <div className="pg-sidebar-info-card">
+            <div className="pg-sic-icon">
+              <Sparkles size={18} />
+            </div>
+            <div className="pg-sic-body">
+              <h6>Certified Quality</h6>
+              <p>All formulations meet strict regulatory standards for purity and crop safety.</p>
+            </div>
           </div>
 
-          {/* Mobile Drawer Bottom Apply Button */}
-          <div className="sidebar-drawer-footer">
-            <button
-              type="button"
-              className="btn btn-primary w-full"
-              onClick={() => setMobileDrawerOpen(false)}
-            >
-              Show {filteredProducts.length} Results
-            </button>
-          </div>
         </div>
       </aside>
     </div>
   );
 }
+
+export default ProductGrid;

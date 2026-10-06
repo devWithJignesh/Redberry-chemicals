@@ -1,355 +1,711 @@
-import { useState, useEffect } from 'react';
+/* ============================================
+   SINGLE PRODUCT DETAILS COMPONENT
+   FILE: SingleProductDetails.jsx
+   Clean, Modern, Dynamic Agriculture UI
+   ============================================ */
+
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { 
-  Package, 
-  FlaskConical, 
-  Layers, 
-  Tag, 
-  CheckCircle2, 
-  ArrowLeft, 
+import {
+  Package,
+  CheckCircle2,
+  ArrowLeft,
   Send,
+  Loader2,
+  AlertCircle,
   Droplet,
   Bug,
-  Sprout
+  Star,
+  ChevronRight,
+  Layers,
+  FlaskConical,
+  Leaf,
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  Check,
+  Sparkles
 } from 'lucide-react';
+
+import { getProductByIdApi, getProductsApi } from '../../../api/productApi';
+import { getSubProductByIdApi, getSubProductsApi } from '../../../api/subProductApi';
 import { useAdminData } from '../../../context/AdminDataContext';
-import { PRODUCTS_CATEGORIES_DATA } from './data';
 import { scrollToTop } from '../../../utils/helpers';
+import { PageSpinner } from '../../../components/common/Loader/PageSpinner';
 import './SingleProductDetails.css';
 
 export default function SingleProductDetails() {
   const { id } = useParams();
-  const { products, subProducts } = useAdminData();
-  const [activeTab, setActiveTab] = useState('subproducts'); // 'subproducts' | 'otherproducts'
+  const { subProducts: contextSubProducts, products: contextProducts } = useAdminData();
+  const relatedCarouselRef = useRef(null);
+  const [product, setProduct] = useState(null);
+  const [parentProduct, setParentProduct] = useState(null);
+  const [subProductsList, setSubProductsList] = useState([]);
+  const [otherProducts, setOtherProducts] = useState([]);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedPackage, setSelectedPackage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const [showFullFeatures, setShowFullFeatures] = useState(false);
+  const [imgFading, setImgFading] = useState(false);
+
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
+
+  const scrollRelated = (direction) => {
+    if (relatedCarouselRef.current) {
+      const scrollAmount = direction === 'left' ? -260 : 260;
+      relatedCarouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  // Automatic smooth slider for related products
+  useEffect(() => {
+    if (!otherProducts || otherProducts.length <= 1 || isCarouselHovered) return;
+
+    const autoSlideTimer = setInterval(() => {
+      if (relatedCarouselRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = relatedCarouselRef.current;
+        if (scrollLeft + clientWidth >= scrollWidth - 15) {
+          relatedCarouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          relatedCarouselRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(autoSlideTimer);
+  }, [otherProducts, isCarouselHovered]);
+
+
 
   useEffect(() => {
     scrollToTop();
-  }, [id]);
 
-  // Combine products from admin context and default fallback data
-  const allDefaultProducts = PRODUCTS_CATEGORIES_DATA.flatMap((cat) => cat.products);
+    const fetchProductDetails = async () => {
+      setIsLoading(true);
+      setError(null);
 
-  const matchedProduct =
-    products.find((p) => p.id === id || p.slug === id) ||
-    allDefaultProducts.find((p) => p.id === id || p.slug === id) ||
-    products[0] ||
-    allDefaultProducts[0];
+      try {
+        let foundProduct = null;
+        let baseProduct = null;
 
-  const categoryName = matchedProduct?.category || 'Agriculture';
+        // 1. Try fetching as Main Product from API if valid ObjectId
+        if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+          try {
+            const res = await getProductByIdApi(id);
+            if (res.success && res.data) {
+              foundProduct = res.data;
+              baseProduct = res.data;
+            }
+          } catch (e) {
+            // Continue fallback
+          }
+        }
 
-  // Filter related sub-products (formulations)
-  const relatedSubProducts = subProducts.filter(
-    (sp) =>
-      sp.parentProductId === matchedProduct?.id ||
-      sp.parentProductName?.toLowerCase() === matchedProduct?.name?.toLowerCase() ||
-      sp.category?.toLowerCase() === categoryName.toLowerCase()
-  );
+        // 2. Try fetching as Sub-Product from API if valid ObjectId
+        if (!foundProduct && id && /^[0-9a-fA-F]{24}$/.test(id)) {
+          try {
+            const subRes = await getSubProductByIdApi(id);
+            if (subRes.success && subRes.data) {
+              const sp = subRes.data;
+              foundProduct = {
+                _id: sp._id || sp.id,
+                id: sp._id || sp.id,
+                name: sp.name,
+                category: sp.parentProductName || sp.productId?.name || 'Agro Chemicals',
+                dosage: sp.dosage,
+                packSizes: Array.isArray(sp.packagingSizes) ? sp.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+                shortDescription: sp.shortDescription,
+                description: sp.description,
+                images: Array.isArray(sp.images) && sp.images.length > 0 ? sp.images : (sp.image ? [sp.image] : []),
+                image: sp.image || (Array.isArray(sp.images) && sp.images[0]) || '/images/products/premium_dummy.jpg',
+                status: sp.status || 'Active',
+                isSubProduct: true,
+                parentProductId: sp.productId?._id || sp.productId || '',
+              };
+              if (sp.productId && typeof sp.productId === 'object') {
+                baseProduct = sp.productId;
+              }
+            }
+          } catch (e) {
+            // Continue fallback
+          }
+        }
 
-  // If no matching sub-products in state, provide fallback related subproducts
-  const displaySubProducts = relatedSubProducts.length > 0 ? relatedSubProducts : subProducts;
+        // 3. Fallback: Search in all products from API
+        if (!foundProduct) {
+          try {
+            const res = await getProductsApi({ limit: 100 });
+            if (res.success && res.data?.products) {
+              const list = res.data.products;
+              foundProduct = list.find((p) => p._id === id || p.id === id);
+              if (foundProduct) baseProduct = foundProduct;
+            }
+          } catch (e) { }
+        }
 
-  // Filter other main products
-  const otherProducts = products.filter((p) => p.id !== matchedProduct?.id);
-  const displayOtherProducts = otherProducts.length > 0 ? otherProducts : allDefaultProducts.filter((p) => p.id !== matchedProduct?.id);
+        // 4. Fallback: Search in local sub-products context
+        if (!foundProduct && contextSubProducts && contextSubProducts.length > 0) {
+          const spContext = contextSubProducts.find((s) => s.id === id || s._id === id || s.slug === id);
+          if (spContext) {
+            foundProduct = {
+              _id: spContext.id || spContext._id,
+              id: spContext.id || spContext._id,
+              name: spContext.name,
+              category: spContext.parentProductName || spContext.category || 'Agro Chemicals',
+              dosage: spContext.dosage,
+              packSizes: Array.isArray(spContext.packagingSizes) ? spContext.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+              shortDescription: spContext.shortDescription,
+              description: spContext.description,
+              images: Array.isArray(spContext.images) && spContext.images.length > 0 ? spContext.images : [spContext.image || '/images/products/premium_dummy.jpg'],
+              image: spContext.image,
+              status: spContext.status || 'Active',
+              isSubProduct: true,
+              parentProductId: spContext.parentProductId || spContext.productId,
+            };
+          }
+        }
 
-  if (!matchedProduct) {
+        // 5. Fallback: Search in local products context
+        if (!foundProduct && contextProducts && contextProducts.length > 0) {
+          const pContext = contextProducts.find((p) => p.id === id || p.slug === id);
+          if (pContext) {
+            foundProduct = pContext;
+            baseProduct = pContext;
+          }
+        }
+
+        if (foundProduct) {
+          setProduct(foundProduct);
+          setActiveImageIndex(0);
+
+          // Default selected package
+          if (Array.isArray(foundProduct.packSizes) && foundProduct.packSizes.length > 0) {
+            setSelectedPackage(foundProduct.packSizes[0]);
+          } else {
+            setSelectedPackage('');
+          }
+
+          // Fetch Sub-Products for this product line passing parent product ID
+          const targetParentId = baseProduct?._id || baseProduct?.id || foundProduct.parentProductId || foundProduct._id || foundProduct.id;
+          let relatedSubList = [];
+
+          if (targetParentId) {
+            try {
+              const subRes = await getSubProductsByProductIdApi(targetParentId);
+              if (subRes.success && Array.isArray(subRes.data)) {
+                relatedSubList = subRes.data;
+              }
+            } catch (e) {
+              try {
+                const fallbackSubRes = await getSubProductsApi({ productId: targetParentId });
+                if (fallbackSubRes.success && Array.isArray(fallbackSubRes.data)) {
+                  relatedSubList = fallbackSubRes.data;
+                }
+              } catch (err) { }
+            }
+          }
+
+          if (relatedSubList.length === 0 && contextSubProducts) {
+            relatedSubList = contextSubProducts.filter(
+              (s) =>
+                s.parentProductId === targetParentId ||
+                s.productId === targetParentId ||
+                s.parentProductName === (baseProduct?.name || foundProduct?.name)
+            );
+          }
+
+          setSubProductsList(relatedSubList);
+          setParentProduct(baseProduct);
+        } else {
+          setError('Product not found in catalog.');
+        }
+
+        // Fetch other products for related section
+        try {
+          const otherRes = await getProductsApi({ limit: 8 });
+          if (otherRes.success && otherRes.data?.products) {
+            const list = otherRes.data.products;
+            setOtherProducts(list.filter((p) => p._id !== foundProduct?._id && p.id !== foundProduct?.id));
+          }
+        } catch (e) { }
+      } catch (err) {
+        setError(err.message || 'Failed to load product details from backend API');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchProductDetails();
+    }
+  }, [id, contextSubProducts, contextProducts]);
+
+
+  // Extract ONLY real product images from API
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+
+    const extracted = [];
+
+    // 1. Check if product.images array exists and has valid elements
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      product.images.forEach((img) => {
+        if (typeof img === 'string' && img.trim() && !extracted.includes(img.trim())) {
+          extracted.push(img.trim());
+        } else if (img && typeof img === 'object' && img.url && !extracted.includes(img.url)) {
+          extracted.push(img.url);
+        }
+      });
+    }
+
+    // 2. Check if primary product.image exists
+    if (product.image && typeof product.image === 'string' && product.image.trim() && !extracted.includes(product.image.trim())) {
+      extracted.unshift(product.image.trim());
+    }
+
+    return extracted;
+  }, [product]);
+
+  // Image switch handler with subtle fade
+  const handleImageSelect = (index) => {
+    if (index === activeImageIndex) return;
+    setImgFading(true);
+    setTimeout(() => {
+      setActiveImageIndex(index);
+      setImgFading(false);
+    }, 150);
+  };
+
+  const handlePrevImage = () => {
+    if (galleryImages.length <= 1) return;
+    const newIdx = (activeImageIndex - 1 + galleryImages.length) % galleryImages.length;
+    handleImageSelect(newIdx);
+  };
+
+  const handleNextImage = () => {
+    if (galleryImages.length <= 1) return;
+    const newIdx = (activeImageIndex + 1) % galleryImages.length;
+    handleImageSelect(newIdx);
+  };
+
+  // Dynamic Pack Sizes directly from API
+  const packSizes = useMemo(() => {
+    if (product?.packSizes && Array.isArray(product.packSizes) && product.packSizes.length > 0) {
+      return product.packSizes.filter((p) => p && typeof p === 'string' && p.trim());
+    }
+    return [];
+  }, [product]);
+
+  // Dynamic Features List directly from API
+  const featuresList = useMemo(() => {
+    if (!product?.features) return [];
+    if (Array.isArray(product.features) && product.features.length > 0) {
+      return product.features.filter((f) => typeof f === 'string' && f.trim());
+    }
+    if (typeof product.features === 'string' && product.features.trim()) {
+      return product.features.split('\n').map((f) => f.trim()).filter(Boolean);
+    }
+    return [];
+  }, [product]);
+
+  // Properly Ordered / Sorted Details Table Data
+  const detailsData = useMemo(() => {
+    if (!product) return [];
+    const items = [];
+
+    // 2. Dosage & Dilution
+    if (product.dosage) {
+      items.push({
+        icon: <Droplet size={17} />,
+        label: 'Dosage & Dilution',
+        value: product.dosage,
+        color: 'blue'
+      });
+    }
+
+    // 3. Target Pests / Diseases
+    if (product.targetPests) {
+      items.push({
+        icon: <Bug size={17} />,
+        label: 'Target Pests / Diseases',
+        value: product.targetPests,
+        color: 'amber'
+      });
+    }
+
+    // 4. Chemical Composition
+    if (product.chemicalComposition || product.composition) {
+      items.push({
+        icon: <FlaskConical size={17} />,
+        label: 'Composition',
+        value: product.chemicalComposition || product.composition,
+        color: 'purple'
+      });
+    }
+
+    // 5. Formulation
+    if (product.formulation) {
+      items.push({
+        icon: <Leaf size={17} />,
+        label: 'Formulation',
+        value: product.formulation,
+        color: 'emerald'
+      });
+    }
+
+    return items;
+  }, [product]);
+
+  if (isLoading) {
     return (
-      <div className="container section-padding text-center">
-        <h2>Product Not Found</h2>
-        <Link to="/products" className="btn btn-primary mt-4">Back to All Products</Link>
+      <PageSpinner
+        title="Loading Product Details..."
+        subtitle="Fetching specifications and formulation data"
+        fullPage={true}
+      />
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="spd-error-screen">
+        <div className="spd-error-card">
+          <div className="spd-error-icon-wrap">
+            <AlertCircle size={44} />
+          </div>
+          <h2>Product Not Found</h2>
+          <p>{error || 'The requested product record is missing or deleted.'}</p>
+          <Link to="/products" className="spd-btn-back-catalog">
+            <ArrowLeft size={16} />
+            <span>Return to Catalog</span>
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const currentImage = galleryImages[activeImageIndex] || galleryImages[0] || '';
+  const isActive = (product.status || '').toLowerCase() === 'active';
+  const hasDescription = Boolean(product.description || product.shortDescription);
+
   return (
-    <div className="single-product-details-page">
-      {/* Main Details Section */}
-      <section className="section-padding-sm single-product-main-section">
+    <div className="spd-page">
+      {/* ── Main Product Section ── */}
+      <section className="spd-main-section">
         <div className="container">
-          {/* Back Button in Details Page Body */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <Link to="/products" className="single-product-back-btn">
-              <ArrowLeft size={16} />
-              <span>Back to Catalog</span>
-            </Link>
-          </div>
+          <div className="spd-product-grid">
 
-          <div className="single-product-main-grid">
-            {/* Left Column: Product Image Gallery */}
-            <div className="single-product-media-wrap">
-              <div className="single-product-image-card">
-                <img
-                  src={matchedProduct.image || '/images/products/premium_dummy.jpg'}
-                  alt={matchedProduct.name}
-                  className="single-product-main-img"
-                  onError={(e) => {
-                    e.target.src = '/images/products/premium_dummy.jpg';
-                  }}
-                />
-                <span className="single-product-badge">
-                  {matchedProduct.tag || matchedProduct.category || 'High Performance'}
-                </span>
-              </div>
-            </div>
+            {/* ══════════════════════════════════════
+                LEFT COLUMN: PRODUCT IMAGE GALLERY
+                ══════════════════════════════════════ */}
+            <div className="spd-left-col">
 
-            {/* Right Column: Product Metadata & Specs */}
-            <div className="single-product-info-wrap">
-              <div className="single-product-meta-header">
-                <span className="single-product-cat-chip">
-                  <Package size={14} />
-                  {categoryName}
-                </span>
-                <h1 className="single-product-title">{matchedProduct.name}</h1>
-                {matchedProduct.technicalName && (
-                  <div className="single-product-technical">
-                    <strong>Technical Name:</strong> {matchedProduct.technicalName}
+              {/* Product Image Gallery Card */}
+              <div className="spd-gallery-card">
+
+                {/* Main Large Image Container */}
+                <div className="spd-main-image-wrap">
+
+                  {/* Image Counter Badge Top-Right */}
+                  {galleryImages.length > 1 && (
+                    <span className="spd-badge-counter">
+                      {activeImageIndex + 1} / {galleryImages.length}
+                    </span>
+                  )}
+
+                  {/* Previous Button Arrow */}
+                  {galleryImages.length > 1 && (
+                    <button
+                      type="button"
+                      className="spd-nav-arrow spd-nav-prev"
+                      onClick={handlePrevImage}
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                  )}
+
+                  {/* Product Main Image */}
+                  <div className={`spd-img-container ${imgFading ? 'fading' : ''}`}>
+                    {currentImage ? (
+                      <img
+                        src={currentImage}
+                        alt={`${product.name || 'Product'} view ${activeImageIndex + 1}`}
+                        className="spd-main-img"
+                      />
+                    ) : (
+                      <div className="spd-no-img-box">
+                        <Package size={48} className="spd-no-img-icon" />
+                        <span>No image available</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Next Button Arrow */}
+                  {galleryImages.length > 1 && (
+                    <button
+                      type="button"
+                      className="spd-nav-arrow spd-nav-next"
+                      onClick={handleNextImage}
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Horizontal Thumbnails Row (Only if multiple images exist in API) */}
+                {galleryImages.length > 1 && (
+                  <div className="spd-thumb-row">
+                    {galleryImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`spd-thumb-card ${activeImageIndex === idx ? 'selected' : ''}`}
+                        onClick={() => handleImageSelect(idx)}
+                        aria-label={`Select product image ${idx + 1}`}
+                      >
+                        <img
+                          src={img}
+                          alt={`Thumbnail ${idx + 1}`}
+                        />
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
 
-              {/* Short Description */}
-              {matchedProduct.shortDescription && (
-                <p className="single-product-short-desc">
-                  {matchedProduct.shortDescription}
+            </div>
+
+            {/* ══════════════════════════════════════
+                RIGHT COLUMN: PRODUCT INFORMATION
+                ══════════════════════════════════════ */}
+            <div className="spd-right-col">
+
+              {/* Top Meta Badges: Category + Rating */}
+              <div className="spd-header-meta">
+                {product.category && (
+                  <span className="spd-category-badge">
+                    <Leaf size={12} />
+                    {product.category}
+                  </span>
+                )}
+                {product.rating && (
+                  <div className="spd-rating-badge">
+                    <Star size={13} className="spd-star-icon" />
+                    <span className="spd-rating-score">{product.rating}</span>
+                    <span className="spd-rating-text">Top Rated</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Title */}
+              {product.name && <h1 className="spd-title">{product.name}</h1>}
+
+              {/* Short Subtitle */}
+              {product.shortDescription && (
+                <p className="spd-subtitle">
+                  {product.shortDescription.replace(/<[^>]+>/g, '')}
                 </p>
               )}
 
-              {/* Detailed Description */}
-              {matchedProduct.description && (
-                <div className="single-product-desc-box">
-                  <h3 className="single-product-section-sub">Detailed Description & Mode of Action</h3>
-                  <div
-                    className="single-product-html-content"
-                    dangerouslySetInnerHTML={{ __html: matchedProduct.description }}
-                  />
+
+              {/* ── AVAILABLE PACKAGING ── */}
+              {packSizes.length > 0 && (
+                <div className="spd-packaging-section">
+                  <div className="spd-section-title">
+                    <Package size={15} />
+                    <span>AVAILABLE PACKAGING</span>
+                  </div>
+                  <div className="spd-pack-options">
+                    {packSizes.map((pack) => {
+                      const isSelected = selectedPackage === pack;
+                      return (
+                        <button
+                          key={pack}
+                          type="button"
+                          className={`spd-pack-btn ${isSelected ? 'active' : ''}`}
+                          onClick={() => setSelectedPackage(pack)}
+                        >
+                          {isSelected && <Check size={14} className="spd-pack-check" />}
+                          <span>{pack}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              {/* Key Features & Benefits */}
-              {matchedProduct.features && (
-                <div className="single-product-features-box">
-                  <h3 className="single-product-section-sub">Key Features & Benefits</h3>
-                  {Array.isArray(matchedProduct.features) ? (
-                    <ul className="single-product-features-list">
-                      {matchedProduct.features.map((feat, idx) => (
-                        <li key={idx}>
-                          <CheckCircle2 size={16} className="text-emerald" />
-                          <span>{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div
-                      className="single-product-html-content"
-                      dangerouslySetInnerHTML={{ __html: matchedProduct.features }}
-                    />
+              {/* ── DESCRIPTION & MODE OF ACTION CARD ── */}
+              {hasDescription && (
+                <div className="spd-card spd-content-card">
+                  <div className="spd-card-title-row">
+                    <h3 className="spd-card-heading">Description & Mode of Action</h3>
+                  </div>
+
+                  {product.shortDescription && (
+                    <div className="spd-desc-intro">
+                      <p>{product.shortDescription.replace(/<[^>]+>/g, '')}</p>
+                    </div>
+                  )}
+
+                  {product.description && (
+                    <>
+                      <div className={`spd-desc-body ${showFullDesc ? 'expanded' : 'collapsed'}`}>
+                        <div
+                          className="spd-rich-text"
+                          dangerouslySetInnerHTML={{ __html: product.description }}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="spd-btn-expand"
+                        onClick={() => setShowFullDesc(!showFullDesc)}
+                      >
+                        <span>{showFullDesc ? 'Show Less' : 'Show More'}</span>
+                        {showFullDesc ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                      </button>
+                    </>
                   )}
                 </div>
               )}
 
-              {/* Quick Specs Grid */}
-              <div className="single-product-specs-grid">
-                {matchedProduct.dosage && (
-                  <div className="single-spec-card">
-                    <Droplet size={18} className="spec-icon text-blue" />
-                    <div>
-                      <span className="spec-label">Dosage & Dilution</span>
-                      <span className="spec-value">{matchedProduct.dosage}</span>
-                    </div>
+              {/* ── KEY FEATURES & BENEFITS CARD ── */}
+              {featuresList.length > 0 && (
+                <div className="spd-card spd-content-card">
+                  <div className="spd-card-title-row">
+                    <h3 className="spd-card-heading">Key Features & Benefits</h3>
                   </div>
-                )}
 
-                {matchedProduct.targetPests && (
-                  <div className="single-spec-card">
-                    <Bug size={18} className="spec-icon text-amber" />
-                    <div>
-                      <span className="spec-label">Target Pests / Diseases</span>
-                      <span className="spec-value">
-                        {Array.isArray(matchedProduct.targetPests)
-                          ? matchedProduct.targetPests.join(', ')
-                          : matchedProduct.targetPests}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {matchedProduct.targetCrops && (
-                  <div className="single-spec-card">
-                    <Sprout size={18} className="spec-icon text-emerald" />
-                    <div>
-                      <span className="spec-label">Recommended Crops</span>
-                      <span className="spec-value">
-                        {Array.isArray(matchedProduct.targetCrops)
-                          ? matchedProduct.targetCrops.join(', ')
-                          : matchedProduct.targetCrops}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Packaging Sizes */}
-              {matchedProduct.packSizes && matchedProduct.packSizes.length > 0 && (
-                <div className="single-product-pack-box">
-                  <span className="pack-title">Available Packaging Sizes:</span>
-                  <div className="single-product-pack-pills">
-                    {matchedProduct.packSizes.map((size) => (
-                      <span key={size} className="single-pack-pill">
-                        <Tag size={12} />
-                        {size}
-                      </span>
+                  <ul className="spd-benefits-list">
+                    {(showFullFeatures ? featuresList : featuresList.slice(0, 3)).map((feat, idx) => (
+                      <li key={idx} className="spd-benefit-item">
+                        <span className="spd-check-wrap">
+                          <CheckCircle2 size={16} />
+                        </span>
+                        <span className="spd-benefit-text">
+                          {typeof feat === 'string' ? feat.replace(/<[^>]+>/g, '') : feat}
+                        </span>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
+
+                  {featuresList.length > 3 && (
+                    <button
+                      type="button"
+                      className="spd-btn-expand"
+                      onClick={() => setShowFullFeatures(!showFullFeatures)}
+                    >
+                      <span>{showFullFeatures ? 'Show Less' : 'Show More'}</span>
+                      {showFullFeatures ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="single-product-actions">
-                <Link to="/contact" className="btn btn-primary single-cta-btn">
+              {/* ── BOTTOM ACTION BUTTONS ── */}
+              <div className="spd-actions-row">
+                <Link to="/contact" className="spd-btn-inquiry">
                   <Send size={16} />
                   <span>Send Product Inquiry</span>
                 </Link>
-                <Link to="/contact" className="btn btn-secondary single-cta-btn">
-                  <span>Become a Distributor</span>
+
+                <Link to="/products" className="spd-btn-catalog">
+                  <Package size={16} />
+                  <span>Browse Full Catalog</span>
                 </Link>
               </div>
+
             </div>
+
           </div>
         </div>
       </section>
 
-      {/* Interactive Card Base Toggle Section: Sub-Products vs Other Products */}
-      <section className="section-padding single-product-showcase-section">
-        <div className="container">
-          <div className="showcase-header">
-            <h2 className="showcase-title">Explore Related Formulations & Products</h2>
-            <p className="showcase-subtitle">
-              Switch between related Sub-Product formulations or explore other product lines in our card grid catalog.
-            </p>
+      {/* ── Sub-Products / Related Products Carousel Section (Matching Reference Screenshot) ── */}
+      {(subProductsList.length > 0 || otherProducts.length > 0) && (
+        <section className="spd-related-section">
+          <div className="container">
+            <div className="spd-related-header-bar">
+              <h2 className="spd-related-main-title">
+                {subProductsList.length > 0
+                  ? 'Available Sub-Products & Formulations'
+                  : 'Customers who viewed this item also viewed'}
+              </h2>
+            </div>
 
-            {/* Toggle Button Bar */}
-            <div className="showcase-toggle-bar">
+            <div
+              className="spd-related-slider-container"
+              onMouseEnter={() => setIsCarouselHovered(true)}
+              onMouseLeave={() => setIsCarouselHovered(false)}
+            >
+              {/* Left Side Arrow Button */}
               <button
                 type="button"
-                className={`showcase-toggle-btn ${activeTab === 'subproducts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('subproducts')}
+                className="spd-side-arrow-btn left"
+                onClick={() => scrollRelated('left')}
+                aria-label="Previous items"
               >
-                <FlaskConical size={16} />
-                <span>Show Sub-Products / Formulations ({displaySubProducts.length})</span>
+                <ChevronLeft size={20} />
               </button>
+
+              {/* Slider Track */}
+              <div className="spd-related-carousel-track" ref={relatedCarouselRef}>
+                {(subProductsList.length > 0 ? subProductsList : otherProducts).map((item) => {
+                  const itemId = item._id || item.id;
+                  const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
+                  const itemSubtitle = item.dosage
+                    ? `Dose: ${item.dosage}`
+                    : Array.isArray(item.packagingSizes)
+                      ? item.packagingSizes.join(', ')
+                      : item.packSizes || '';
+
+                  return (
+                    <Link
+                      key={itemId}
+                      to={`/products/view/${itemId}`}
+                      className="spd-related-carousel-card"
+                    >
+                      <div className="spd-rc-img-wrap">
+                        {itemImg ? (
+                          <img
+                            src={itemImg}
+                            alt={item.name}
+                            onError={(e) => {
+                              e.target.src = '/images/products/premium_dummy.jpg';
+                            }}
+                          />
+                        ) : (
+                          <Package size={40} className="spd-rc-placeholder-icon" />
+                        )}
+                      </div>
+                      <div className="spd-rc-info">
+                        <h4 className="spd-rc-title">{item.name}</h4>
+                        {itemSubtitle && (
+                          <span className="spd-rc-sub-spec">{itemSubtitle}</span>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Right Side Arrow Button */}
               <button
                 type="button"
-                className={`showcase-toggle-btn ${activeTab === 'otherproducts' ? 'active' : ''}`}
-                onClick={() => setActiveTab('otherproducts')}
+                className="spd-side-arrow-btn right"
+                onClick={() => scrollRelated('right')}
+                aria-label="Next items"
               >
-                <Package size={16} />
-                <span>Show Other Products ({displayOtherProducts.length})</span>
+                <ChevronRight size={20} />
               </button>
             </div>
           </div>
-
-          {/* Tab 1: Sub-Products Cards Grid */}
-          {activeTab === 'subproducts' && (
-            <div className="showcase-cards-grid">
-              {displaySubProducts.map((subItem) => (
-                <div key={subItem.id} className="subproduct-card">
-                  <div className="subproduct-card-media">
-                    <img
-                      src={subItem.image || '/images/products/premium_dummy.jpg'}
-                      alt={subItem.name}
-                      className="subproduct-card-img"
-                      onError={(e) => {
-                        e.target.src = '/images/products/premium_dummy.jpg';
-                      }}
-                    />
-                    <span className="subproduct-tag">Sub-Product Formulation</span>
-                  </div>
-
-                  <div className="subproduct-card-body">
-                    <div className="subproduct-parent-chip">
-                      <Layers size={12} />
-                      <span>{subItem.parentProductName || subItem.category || 'Agro Formulation'}</span>
-                    </div>
-
-                    <h3 className="subproduct-title">{subItem.name}</h3>
-
-                    {subItem.dosage && (
-                      <div className="subproduct-spec-row">
-                        <strong>Dosage:</strong> <span>{subItem.dosage}</span>
-                      </div>
-                    )}
-
-                    {subItem.targetPests && (
-                      <div className="subproduct-spec-row">
-                        <strong>Target Pests:</strong> <span>{subItem.targetPests}</span>
-                      </div>
-                    )}
-
-                    {subItem.recommendedCrops && (
-                      <div className="subproduct-spec-row">
-                        <strong>Crops:</strong> <span>{subItem.recommendedCrops}</span>
-                      </div>
-                    )}
-
-                    {/* Packaging Chips */}
-                    {subItem.packagingSizes && subItem.packagingSizes.length > 0 && (
-                      <div className="subproduct-pack-pills">
-                        {subItem.packagingSizes.slice(0, 4).map((size) => (
-                          <span key={size} className="sub-pack-pill">{size}</span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="subproduct-footer">
-                      <Link to="/contact" className="btn btn-secondary btn-sm full-w">
-                        Inquire About {subItem.name} →
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Tab 2: Other Products Cards Grid */}
-          {activeTab === 'otherproducts' && (
-            <div className="showcase-cards-grid">
-              {displayOtherProducts.map((prod) => (
-                <div key={prod.id} className="otherproduct-card">
-                  <div className="otherproduct-card-media">
-                    <img
-                      src={prod.image || '/images/products/premium_dummy.jpg'}
-                      alt={prod.name}
-                      className="otherproduct-card-img"
-                      onError={(e) => {
-                        e.target.src = '/images/products/premium_dummy.jpg';
-                      }}
-                    />
-                    <span className="otherproduct-category-chip">{prod.category || 'Agriculture'}</span>
-                  </div>
-
-                  <div className="otherproduct-card-body">
-                    <h3 className="otherproduct-title">{prod.name}</h3>
-                    {prod.technicalName && (
-                      <span className="otherproduct-tech">{prod.technicalName}</span>
-                    )}
-
-                    <p className="otherproduct-desc">
-                      {prod.shortDescription || prod.description?.substring(0, 100) + '...'}
-                    </p>
-
-                    <div className="otherproduct-footer">
-                      <Link to={`/products/view/${prod.id}`} className="btn btn-primary btn-sm full-w">
-                        View Product Details →
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

@@ -34,6 +34,7 @@ import ReviewDelete from '../modules/admin/reviews/ReviewDelete';
 
 // Admin Inquiry CRUD
 import InquiryList from '../modules/admin/inquiries/InquiryList';
+import InquiryView from '../modules/admin/inquiries/InquiryView';
 import InquiryForm from '../modules/admin/inquiries/InquiryForm';
 import InquiryDelete from '../modules/admin/inquiries/InquiryDelete';
 
@@ -100,6 +101,7 @@ export default function AppRoutes() {
 
         {/* 4. INQUIRY CRUD MODULE */}
         <Route path="inquiries" element={<InquiryList />} />
+        <Route path="inquiries/view/:id" element={<InquiryView />} />
         <Route path="inquiries/add" element={<InquiryForm />} />
         <Route path="inquiries/edit/:id" element={<InquiryForm />} />
         <Route path="inquiries/delete/:id" element={<InquiryDelete />} />

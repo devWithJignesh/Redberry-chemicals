@@ -10,7 +10,7 @@ export default function AdminFooter() {
       </div>
       <div className="admin-footer-status">
         <span className="admin-status-dot"></span>
-        <span>SUPERADMIN SYSTEM ONLINE &bull; SECURE SESSION ACTIVE</span>
+        <span>Super Admin System Online &bull; Secure Session Active</span>
       </div>
     </footer>
   );

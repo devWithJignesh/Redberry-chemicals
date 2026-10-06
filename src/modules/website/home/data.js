@@ -240,39 +240,8 @@ export const STATS = [
 
 export const STATS_DATA = STATS;
 
-// Section 4: Testimonials (TODO: replace with real dealer testimonials once collected - placeholder testimonials should not stay live on a production site)
-export const TESTIMONIALS = [
-  {
-    id: 1,
-    quote: "Redberry's insecticide range has been consistent every season — that's what keeps me reordering.",
-    author: "Dealer, Surendranagar",
-    name: "Dealer",
-    location: "Surendranagar, Gujarat",
-    crop: "Cotton & Groundnut",
-    rating: 5,
-    avatarInitials: "SN",
-  },
-  {
-    id: 2,
-    quote: "Good support from their team whenever we need product information or field guidance.",
-    author: "Distributor, Jamnagar",
-    name: "Distributor",
-    location: "Jamnagar, Gujarat",
-    crop: "Cumin & Mustard",
-    rating: 5,
-    avatarInitials: "JM",
-  },
-  {
-    id: 3,
-    quote: "Their fungicide formulations have held up well across different crop cycles.",
-    author: "Farmer, Morbi",
-    name: "Farmer",
-    location: "Morbi, Gujarat",
-    crop: "Chilli & Vegetables",
-    rating: 5,
-    avatarInitials: "MB",
-  },
-];
+// Section 4: Testimonials (Loaded dynamically via Customer Reviews API)
+export const TESTIMONIALS = [];
 
 export const TESTIMONIALS_DATA = {
   badge: "Real Farmer & Dealer Stories",

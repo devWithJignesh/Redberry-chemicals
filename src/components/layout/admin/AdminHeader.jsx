@@ -9,28 +9,28 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
 
   // Derive capitalized breadcrumb title from path
   const getBreadcrumbTitle = (pathname) => {
-    if (pathname.includes('/admin/dashboard')) return 'DASHBOARD';
-    if (pathname.includes('/admin/products/add')) return 'PRODUCT / ADD NEW';
-    if (pathname.includes('/admin/products/edit')) return 'PRODUCT / EDIT RECORD';
-    if (pathname.includes('/admin/products/delete')) return 'PRODUCT / DELETE CONFIRMATION';
-    if (pathname.includes('/admin/products')) return 'PRODUCT / LIST';
+    if (pathname.includes('/admin/dashboard')) return 'Dashboard';
+    if (pathname.includes('/admin/products/add')) return 'Product / Add New';
+    if (pathname.includes('/admin/products/edit')) return 'Product / Edit Record';
+    if (pathname.includes('/admin/products/delete')) return 'Product / Delete Confirmation';
+    if (pathname.includes('/admin/products')) return 'Product / List';
     
-    if (pathname.includes('/admin/sub-products/add')) return 'SUB-PRODUCT / ADD NEW';
-    if (pathname.includes('/admin/sub-products/edit')) return 'SUB-PRODUCT / EDIT RECORD';
-    if (pathname.includes('/admin/sub-products/delete')) return 'SUB-PRODUCT / DELETE CONFIRMATION';
-    if (pathname.includes('/admin/sub-products')) return 'SUB-PRODUCT / LIST';
+    if (pathname.includes('/admin/sub-products/add')) return 'Sub-Product / Add New';
+    if (pathname.includes('/admin/sub-products/edit')) return 'Sub-Product / Edit Record';
+    if (pathname.includes('/admin/sub-products/delete')) return 'Sub-Product / Delete Confirmation';
+    if (pathname.includes('/admin/sub-products')) return 'Sub-Product / List';
     
-    if (pathname.includes('/admin/reviews/add')) return 'CUSTOMER REVIEW / ADD NEW';
-    if (pathname.includes('/admin/reviews/edit')) return 'CUSTOMER REVIEW / EDIT RECORD';
-    if (pathname.includes('/admin/reviews/delete')) return 'CUSTOMER REVIEW / DELETE CONFIRMATION';
-    if (pathname.includes('/admin/reviews')) return 'CUSTOMER REVIEW / LIST';
+    if (pathname.includes('/admin/reviews/add')) return 'Customer Review / Add New';
+    if (pathname.includes('/admin/reviews/edit')) return 'Customer Review / Edit Record';
+    if (pathname.includes('/admin/reviews/delete')) return 'Customer Review / Delete Confirmation';
+    if (pathname.includes('/admin/reviews')) return 'Customer Review / List';
     
-    if (pathname.includes('/admin/inquiries/add')) return 'INQUIRY / CREATE NEW';
-    if (pathname.includes('/admin/inquiries/edit')) return 'INQUIRY / UPDATE STATUS';
-    if (pathname.includes('/admin/inquiries/delete')) return 'INQUIRY / DELETE CONFIRMATION';
-    if (pathname.includes('/admin/inquiries')) return 'INQUIRY / LIST';
+    if (pathname.includes('/admin/inquiries/add')) return 'Inquiry / Create New';
+    if (pathname.includes('/admin/inquiries/edit')) return 'Inquiry / Update Status';
+    if (pathname.includes('/admin/inquiries/delete')) return 'Inquiry / Delete Confirmation';
+    if (pathname.includes('/admin/inquiries')) return 'Inquiry / List';
 
-    return 'ADMIN PANEL';
+    return 'Admin Panel';
   };
 
   const handleLogout = () => {
@@ -53,7 +53,7 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
 
         <div className="admin-breadcrumbs">
           <Link to="/admin/dashboard" className="btn-admin-header-link" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}>
-            ADMIN
+            Admin
           </Link>
           <span className="admin-breadcrumb-sep">/</span>
           <span className="admin-breadcrumb-item active">{getBreadcrumbTitle(location.pathname)}</span>
@@ -64,7 +64,7 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
         {/* SuperAdmin Role Tag */}
         <div className="admin-superadmin-tag">
           <Shield size={14} strokeWidth={2.5} />
-          <span>{user?.role || 'SUPERADMIN'}</span>
+          <span>{user?.role || 'Super Admin'}</span>
         </div>
 
         {/* Secure Logout action button */}
@@ -75,7 +75,7 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
           title="Sign out of SuperAdmin session and return to public website"
         >
           <LogOut size={14} />
-          <span>LOGOUT</span>
+          <span>Logout</span>
         </button>
       </div>
     </header>

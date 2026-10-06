@@ -3,9 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   User, 
   MapPin, 
-  Sprout, 
   Star, 
-  ShieldCheck, 
   ArrowLeft, 
   Save, 
   Upload, 
@@ -14,6 +12,7 @@ import {
   FileText
 } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
+import { getReviewByIdApi } from '../../../api/reviewApi';
 
 export default function ReviewForm() {
   const { id } = useParams();
@@ -23,46 +22,63 @@ export default function ReviewForm() {
 
   const [formData, setFormData] = useState({
     name: '',
-    location: '',
-    role: '',
-    cropOrCategory: '',
-    rate: 5,
-    title: '',
+    address: '',
     description: '',
-    verified: true,
+    rate: 5,
     image: '',
   });
 
   const [hoverRating, setHoverRating] = useState(0);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(isEditMode);
 
   useEffect(() => {
     if (isEditMode) {
-      const existing = getReviewById(id);
-      if (existing) {
-        setFormData({
-          name: existing.name || '',
-          location: existing.location || '',
-          role: existing.role || '',
-          cropOrCategory: existing.cropOrCategory || '',
-          rate: Number(existing.rate) || 5,
-          title: existing.title || '',
-          description: existing.description || '',
-          verified: existing.verified !== undefined ? Boolean(existing.verified) : true,
-          image: existing.image || '',
-        });
-      } else {
-        navigate('/admin/reviews');
-      }
+      const loadReview = async () => {
+        setIsLoading(true);
+        try {
+          const res = await getReviewByIdApi(id);
+          if (res && res.success && res.data) {
+            const r = res.data;
+            setFormData({
+              name: r.name || '',
+              address: r.address || r.location || '',
+              description: r.description || r.review || r.title || '',
+              rate: Number(r.rate) || 5,
+              image: r.image || '',
+            });
+            setIsLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.warn('API fetch review by id failed, falling back to context:', err);
+        }
+
+        const existing = getReviewById(id);
+        if (existing) {
+          setFormData({
+            name: existing.name || '',
+            address: existing.address || existing.location || '',
+            description: existing.description || existing.review || existing.title || '',
+            rate: Number(existing.rate) || 5,
+            image: existing.image || '',
+          });
+        } else {
+          navigate('/admin/reviews');
+        }
+        setIsLoading(false);
+      };
+
+      loadReview();
     }
   }, [id, isEditMode, getReviewById, navigate]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
@@ -99,18 +115,19 @@ export default function ReviewForm() {
 
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim()) errs.name = 'Customer/Farmer name is required.';
-    if (!formData.location.trim()) errs.location = 'Location (e.g. Anand, Gujarat) is required.';
-    if (!formData.title.trim()) errs.title = 'Review headline is required.';
-    if (!formData.description.trim()) errs.description = 'Testimonial description is required.';
+    if (!formData.name.trim()) errs.name = 'Customer name is required.';
+    if (!formData.address.trim()) errs.address = 'Address / Location is required.';
+    if (!formData.description.trim()) errs.description = 'Review description is required.';
     if (!formData.rate || formData.rate < 1 || formData.rate > 5) {
-      errs.rate = 'Please select a star rating between 1 and 5.';
+      errs.rate = 'Please select a rating between 1 and 5.';
     }
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -119,33 +136,46 @@ export default function ReviewForm() {
 
     setIsSubmitting(true);
     
-    // Default avatar if none uploaded
     const finalData = {
-      ...formData,
-      image: formData.image || '/images/reviews/farmer_1.png',
+      name: formData.name.trim(),
+      address: formData.address.trim(),
+      description: formData.description.trim(),
       rate: Number(formData.rate) || 5,
+      image: formData.image || '/images/reviews/farmer_1.png',
     };
 
-    if (isEditMode) {
-      updateReview(id, finalData);
-    } else {
-      addReview(finalData);
+    try {
+      if (isEditMode) {
+        await updateReview(id, finalData);
+      } else {
+        await addReview(finalData);
+      }
+      navigate('/admin/reviews');
+    } catch (err) {
+      console.warn('API error during review save:', err);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    navigate('/admin/reviews');
   };
 
   const getRatingLabel = (score) => {
     switch (Math.round(score)) {
-      case 5: return '5.0 - Outstanding Experience';
+      case 5: return '5.0 - Excellent';
       case 4: return '4.0 - Very Good';
-      case 3: return '3.0 - Good / Average';
+      case 3: return '3.0 - Good';
       case 2: return '2.0 - Fair';
       case 1: return '1.0 - Poor';
       default: return `${score} Stars`;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="admin-review-form-page" style={{ padding: '2rem', textAlign: 'center' }}>
+        <p style={{ color: '#52635C' }}>Loading review details...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-review-form-page">
@@ -157,8 +187,8 @@ export default function ReviewForm() {
           </h1>
           <p className="admin-page-subtitle">
             {isEditMode
-              ? `Modify testimonial feedback and rating for record (${id})`
-              : 'Create and publish a verified farmer or agro-dealer testimonial'}
+              ? `Modify customer review and rating (${id})`
+              : 'Add customer feedback with name, address, description, rating, and profile photo'}
           </p>
         </div>
         <div className="admin-page-actions">
@@ -173,16 +203,16 @@ export default function ReviewForm() {
       <div className="admin-form-container">
         <form onSubmit={handleSubmit} noValidate>
           
-          {/* Section 1: Customer Profile */}
+          {/* Section 1: Customer Details */}
           <div className="admin-form-section">
             <div className="admin-form-section-header">
               <div className="admin-form-section-icon">
                 <User size={18} />
               </div>
               <div>
-                <h3 className="admin-form-section-title">Reviewer Information</h3>
+                <h3 className="admin-form-section-title">Customer Details</h3>
                 <p className="admin-form-section-desc">
-                  Farmer or agricultural dealer identity details
+                  Reviewer name and address details
                 </p>
               </div>
             </div>
@@ -191,7 +221,7 @@ export default function ReviewForm() {
               {/* Customer Name */}
               <div className="admin-form-group">
                 <label htmlFor="rev-name" className="admin-form-label">
-                  Farmer / Dealer Name <span className="required">*</span>
+                  Name <span className="required">*</span>
                 </label>
                 <div className="admin-input-icon-wrap">
                   <User size={15} className="admin-field-icon" />
@@ -209,84 +239,47 @@ export default function ReviewForm() {
                 {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
               </div>
 
-              {/* Location */}
+              {/* Address */}
               <div className="admin-form-group">
-                <label htmlFor="rev-loc" className="admin-form-label">
-                  Location / Region <span className="required">*</span>
+                <label htmlFor="rev-address" className="admin-form-label">
+                  Address <span className="required">*</span>
                 </label>
                 <div className="admin-input-icon-wrap">
                   <MapPin size={15} className="admin-field-icon" />
                   <input
-                    id="rev-loc"
-                    name="location"
+                    id="rev-address"
+                    name="address"
                     type="text"
-                    className={`admin-form-input with-icon ${errors.location ? 'error' : ''}`}
+                    className={`admin-form-input with-icon ${errors.address ? 'error' : ''}`}
                     placeholder="e.g. Anand, Gujarat"
-                    value={formData.location}
+                    value={formData.address}
                     onChange={handleChange}
                     required
                   />
                 </div>
-                {errors.location && <span className="admin-form-error-msg">{errors.location}</span>}
-              </div>
-            </div>
-
-            <div className="admin-form-grid-2">
-              {/* Role / Profession */}
-              <div className="admin-form-group">
-                <label htmlFor="rev-role" className="admin-form-label">
-                  Farmer Role / Crop Scale
-                </label>
-                <input
-                  id="rev-role"
-                  name="role"
-                  type="text"
-                  className="admin-form-input"
-                  placeholder="e.g. Cotton & Tobacco Grower"
-                  value={formData.role}
-                  onChange={handleChange}
-                />
-              </div>
-
-              {/* Crop / Product Category */}
-              <div className="admin-form-group">
-                <label htmlFor="rev-crop" className="admin-form-label">
-                  Crop / Chemical Product Applied
-                </label>
-                <div className="admin-input-icon-wrap">
-                  <Sprout size={15} className="admin-field-icon" />
-                  <input
-                    id="rev-crop"
-                    name="cropOrCategory"
-                    type="text"
-                    className="admin-form-input with-icon"
-                    placeholder="e.g. Cotton Protection & PGR"
-                    value={formData.cropOrCategory}
-                    onChange={handleChange}
-                  />
-                </div>
+                {errors.address && <span className="admin-form-error-msg">{errors.address}</span>}
               </div>
             </div>
           </div>
 
-          {/* Section 2: Rating & Feedback */}
+          {/* Section 2: Rating & Description */}
           <div className="admin-form-section">
             <div className="admin-form-section-header">
               <div className="admin-form-section-icon">
                 <FileText size={18} />
               </div>
               <div>
-                <h3 className="admin-form-section-title">Rating & Testimonial</h3>
+                <h3 className="admin-form-section-title">Rating & Description</h3>
                 <p className="admin-form-section-desc">
-                  Star score and detailed performance review
+                  Star score rating and review description
                 </p>
               </div>
             </div>
 
-            {/* Interactive Star Rating Selector */}
+            {/* Interactive Rating Selector */}
             <div className="admin-form-group">
               <label className="admin-form-label">
-                Performance Rating <span className="required">*</span>
+                Rating <span className="required">*</span>
               </label>
               <div className="admin-star-rating-box">
                 <div className="admin-star-buttons-row">
@@ -308,8 +301,8 @@ export default function ReviewForm() {
                         <Star
                           size={24}
                           className="admin-star-svg"
-                          fill={isFilled ? '#eab308' : 'none'}
-                          stroke={isFilled ? '#eab308' : '#cbd5e1'}
+                          fill={isFilled ? '#D97706' : 'none'}
+                          stroke={isFilled ? '#D97706' : '#DDE5E1'}
                           strokeWidth={1.8}
                         />
                       </button>
@@ -324,35 +317,17 @@ export default function ReviewForm() {
               {errors.rate && <span className="admin-form-error-msg">{errors.rate}</span>}
             </div>
 
-            {/* Review Headline */}
-            <div className="admin-form-group">
-              <label htmlFor="rev-title" className="admin-form-label">
-                Review Headline / Summary <span className="required">*</span>
-              </label>
-              <input
-                id="rev-title"
-                name="title"
-                type="text"
-                className={`admin-form-input ${errors.title ? 'error' : ''}`}
-                placeholder="e.g. Remarkable boll retention and zero pink bollworm issue"
-                value={formData.title}
-                onChange={handleChange}
-                required
-              />
-              {errors.title && <span className="admin-form-error-msg">{errors.title}</span>}
-            </div>
-
-            {/* Testimonial Message */}
+            {/* Review Description */}
             <div className="admin-form-group">
               <label htmlFor="rev-desc" className="admin-form-label">
-                Testimonial Description <span className="required">*</span>
+                Description <span className="required">*</span>
               </label>
               <textarea
                 id="rev-desc"
                 name="description"
                 rows={5}
                 className={`admin-form-textarea ${errors.description ? 'error' : ''}`}
-                placeholder="Enter the farmer's firsthand feedback regarding product efficacy, crop yield improvement, dosage instructions, and overall satisfaction..."
+                placeholder="Enter customer feedback description..."
                 value={formData.description}
                 onChange={handleChange}
                 required
@@ -363,23 +338,22 @@ export default function ReviewForm() {
             </div>
           </div>
 
-          {/* Section 3: Reviewer Photo */}
+          {/* Section 3: Upload Profile Image */}
           <div className="admin-form-section">
             <div className="admin-form-section-header">
               <div className="admin-form-section-icon">
-                <ShieldCheck size={18} />
+                <Camera size={18} />
               </div>
               <div>
-                <h3 className="admin-form-section-title">Profile Photo</h3>
+                <h3 className="admin-form-section-title">Profile Image</h3>
                 <p className="admin-form-section-desc">
-                  Optional customer avatar photo
+                  Upload customer profile avatar photo
                 </p>
               </div>
             </div>
 
-            {/* Optional Customer Photo Upload */}
             <div className="admin-form-group" style={{ marginTop: '1.25rem' }}>
-              <label className="admin-form-label">Reviewer Photo (Optional)</label>
+              <label className="admin-form-label">Profile Image (Optional)</label>
               
               <div className="admin-avatar-upload-wrap">
                 {formData.image ? (
@@ -396,7 +370,7 @@ export default function ReviewForm() {
                       type="button"
                       className="btn-remove-avatar"
                       onClick={handleRemoveImage}
-                      title="Remove custom photo"
+                      title="Remove photo"
                     >
                       <X size={14} />
                     </button>
@@ -411,7 +385,7 @@ export default function ReviewForm() {
                 <div className="admin-avatar-upload-controls">
                   <label className="btn-admin-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                     <Upload size={14} />
-                    <span>{formData.image ? 'Change Photo' : 'Upload Customer Photo'}</span>
+                    <span>{formData.image ? 'Change Photo' : 'Upload Profile Image'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -420,7 +394,7 @@ export default function ReviewForm() {
                     />
                   </label>
                   <p className="admin-form-hint" style={{ margin: 0 }}>
-                    Recommended: 1:1 square photo (PNG, JPG, WebP up to 3MB). If left empty, default farmer avatar will be displayed.
+                    Recommended: Square photo (PNG, JPG, WebP).
                   </p>
                 </div>
               </div>
@@ -439,7 +413,7 @@ export default function ReviewForm() {
               disabled={isSubmitting}
             >
               <Save size={16} />
-              <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Review' : 'Publish Review'}</span>
+              <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Review' : 'Save Review'}</span>
             </button>
           </div>
         </form>

@@ -1,28 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Filter } from 'lucide-react';
-import { useAdminData } from '../../../context/AdminDataContext';
+import { Plus, Search, Pencil, Trash2, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getProductsApi } from '../../../api/productApi';
+import { useToast } from '../../../context/ToastContext';
+import AdminSelect from '../../../components/common/AdminSelect';
 
 export default function ProductList() {
-  const { products } = useAdminData();
-
+  const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 5, totalPages: 1 });
+  const [isLoading, setIsLoading] = useState(false);
+  const { showToast } = useToast();
 
-  // Extract unique categories
-  const categories = ['ALL', ...Array.from(new Set(products.map((p) => p.category)))];
+  const categories = ['ALL', 'Insecticides', 'Fungicides', 'Herbicides', 'PGR & Nutrition', 'Biostimulants', 'Agriculture', 'Fertilizers'];
 
-  // Filter products based on search and category
-  const filteredProducts = products.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.shortDescription && item.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()));
+  const categoryFilterOptions = categories.map((cat) => ({
+    value: cat,
+    label: cat === 'ALL' ? 'All Categories' : cat,
+  }));
 
-    const matchesCategory = categoryFilter === 'ALL' || item.category === categoryFilter;
+  // Fetch Products from Backend API with Server-Side Pagination
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getProductsApi({
+        page,
+        limit,
+        search: searchQuery.trim() || undefined,
+        category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
+      });
 
-    return matchesSearch && matchesCategory;
-  });
+      if (res.success && res.data) {
+        setProducts(res.data.products || []);
+        setPagination(res.data.pagination || { total: 0, page: 1, limit, totalPages: 1 });
+      }
+    } catch (err) {
+      showToast(err.message || 'Failed to load products from backend API', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, limit, searchQuery, categoryFilter, showToast]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setPage(1); // Reset to page 1 on search
+  };
+
+  const handleCategoryChange = (e) => {
+    setCategoryFilter(e.target.value);
+    setPage(1); // Reset to page 1 on category filter
+  };
+
+  const handleLimitChange = (e) => {
+    setLimit(Number(e.target.value));
+    setPage(1); // Reset to page 1 on limit change
+  };
+
+  const startRecord = (pagination.page - 1) * pagination.limit + (products.length > 0 ? 1 : 0);
+  const endRecord = Math.min(pagination.page * pagination.limit, pagination.total);
 
   return (
     <div className="admin-product-list-page">
@@ -31,7 +73,7 @@ export default function ProductList() {
         <div className="admin-page-title-wrap">
           <h1 className="admin-page-title">Product Management</h1>
           <p className="admin-page-subtitle">
-            Manage top-level agricultural product categories, formulations, and catalog status
+            Manage top-level agricultural product formulations, categories, and catalog status
           </p>
         </div>
         <div className="admin-page-actions">
@@ -54,28 +96,25 @@ export default function ProductList() {
                 className="admin-search-input"
                 placeholder="Search products by name, category..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
               />
             </div>
 
-            <div className="admin-select-wrap">
-              <Filter size={14} className="admin-filter-icon" />
-              <select
-                className="admin-select-filter"
+            <div style={{ minWidth: '200px' }}>
+              <AdminSelect
+                id="category-filter"
+                name="categoryFilter"
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    Category: {cat === 'ALL' ? 'All Categories' : cat}
-                  </option>
-                ))}
-              </select>
+                onChange={handleCategoryChange}
+                options={categoryFilterOptions}
+                prefixIcon={<Filter size={14} style={{ color: '#7A8983' }} />}
+                placeholder="Filter by category..."
+              />
             </div>
           </div>
 
           <div className="admin-table-counter">
-            Showing <strong>{filteredProducts.length}</strong> of {products.length} products
+            Showing <strong>{startRecord}-{endRecord}</strong> of {pagination.total} products
           </div>
         </div>
 
@@ -93,7 +132,13 @@ export default function ProductList() {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="admin-table-empty">
+                    <p className="admin-table-empty-title">Loading Products from Backend API...</p>
+                  </td>
+                </tr>
+              ) : products.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="admin-table-empty">
                     <p className="admin-table-empty-title">No products found</p>
@@ -103,10 +148,15 @@ export default function ProductList() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((item) => {
+                products.map((item) => {
                   const isActive = item.status?.toLowerCase() === 'active';
+                  const prodId = item._id || item.id;
+                  const createdDate = item.createdAt
+                    ? new Date(item.createdAt).toISOString().split('T')[0]
+                    : '2026-08-15';
+
                   return (
-                    <tr key={item.id}>
+                    <tr key={prodId}>
                       <td>
                         <div className="admin-table-item-cell">
                           <img
@@ -121,16 +171,16 @@ export default function ProductList() {
                             <span className="admin-table-item-name">{item.name}</span>
                             <span className="admin-table-item-sub">
                               {item.shortDescription
-                                ? item.shortDescription.length > 60
+                                ? (item.shortDescription.length > 60
                                   ? item.shortDescription.slice(0, 60) + '...'
-                                  : item.shortDescription
+                                  : item.shortDescription)
                                 : 'No short description provided'}
                             </span>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span className="admin-badge category">{item.category}</span>
+                        <span className="admin-badge category">{item.category || 'Insecticides'}</span>
                       </td>
                       <td>
                         <span className="admin-table-feature-pill">
@@ -144,14 +194,12 @@ export default function ProductList() {
                         </span>
                       </td>
                       <td>
-                        <span className="admin-table-date">
-                          {item.createdAt || '2026-08-15'}
-                        </span>
+                        <span className="admin-table-date">{createdDate}</span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div className="admin-table-actions">
                           <Link
-                            to={`/admin/products/edit/${item.id}`}
+                            to={`/admin/products/edit/${prodId}`}
                             className="btn-table-action edit"
                             title="Edit product details"
                           >
@@ -159,7 +207,7 @@ export default function ProductList() {
                             <span>Edit</span>
                           </Link>
                           <Link
-                            to={`/admin/products/delete/${item.id}`}
+                            to={`/admin/products/delete/${prodId}`}
                             className="btn-table-action delete"
                             title="Delete product"
                           >
@@ -175,6 +223,71 @@ export default function ProductList() {
             </tbody>
           </table>
         </div>
+
+        {/* Server-Side Pagination Controls Footer */}
+        {pagination.totalPages > 1 && (
+          <div className="admin-table-pagination-footer" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '1rem 1.5rem',
+            borderTop: '1px solid #DDE5E1',
+            background: '#ffffff',
+            flexWrap: 'wrap',
+            gap: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', color: '#7A8983' }}>
+              <span>Rows per page:</span>
+              <select
+                value={limit}
+                onChange={handleLimitChange}
+                style={{
+                  padding: '0.35rem 0.6rem',
+                  borderRadius: '6px',
+                  border: '1px solid #DDE5E1',
+                  background: '#F7FAF9',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  color: '#172B24',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={20}>20 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className="btn-admin-secondary"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                style={{ opacity: page <= 1 ? 0.4 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer', padding: '0.4rem 0.8rem' }}
+              >
+                <ChevronLeft size={15} />
+                <span>Previous</span>
+              </button>
+
+              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#172B24', padding: '0 0.5rem' }}>
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
+
+              <button
+                type="button"
+                className="btn-admin-secondary"
+                disabled={page >= pagination.totalPages}
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                style={{ opacity: page >= pagination.totalPages ? 0.4 : 1, cursor: page >= pagination.totalPages ? 'not-allowed' : 'pointer', padding: '0.4rem 0.8rem' }}
+              >
+                <span>Next</span>
+                <ChevronRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

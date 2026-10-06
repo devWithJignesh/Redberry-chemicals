@@ -1,42 +1,52 @@
+/* ============================================
+   SUB-PRODUCT FORM COMPONENT
+   FILE: SubProductForm.jsx
+   Clean, Modern Sub-Product Management UI
+   ============================================ */
+
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   FlaskConical, 
   Package, 
   Tag, 
-  Plus, 
   Trash2, 
   Star, 
   UploadCloud, 
   ImagePlus, 
   ArrowLeft, 
   Check, 
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
+import { getProductsApi } from '../../../api/productApi';
+import { 
+  createSubProductApi, 
+  updateSubProductApi, 
+  getSubProductByIdApi 
+} from '../../../api/subProductApi';
+import { uploadImagesApi } from '../../../api/uploadApi';
+import { useToast } from '../../../context/ToastContext';
 import AdminSelect from '../../../components/common/AdminSelect';
 import RichTextEditor from '../../../components/common/RichTextEditor';
 
-// Standard packaging sizes for agrochemicals & fertilizers
-const PRESET_PACKAGING_SIZES = [
-  '50 gm',
-  '100 gm',
-  '250 gm',
-  '500 gm',
-  '1 Kg',
-  '2 Kg',
-  '5 Kg',
-  '10 Kg',
-  '25 Kg',
-  '50 ml',
-  '100 ml',
-  '250 ml',
-  '500 ml',
-  '1 Litre',
-  '5 Litre',
-  '20 Litre',
-  '50 Litre Drum',
-  '200 Litre Drum',
+// Standard packaging sizes options matching ProductForm.jsx
+const PACKAGING_SIZE_OPTIONS = [
+  { value: '100 ml', label: '100 ml' },
+  { value: '250 ml', label: '250 ml' },
+  { value: '500 ml', label: '500 ml' },
+  { value: '1 Litre', label: '1 Litre' },
+  { value: '5 Litres', label: '5 Litres' },
+  { value: '20 Litres', label: '20 Litres' },
+  { value: '200 Litres (Drum)', label: '200 Litres (Drum)' },
+  { value: '100 gm', label: '100 gm' },
+  { value: '250 gm', label: '250 gm' },
+  { value: '500 gm', label: '500 gm' },
+  { value: '1 kg', label: '1 kg' },
+  { value: '5 kg', label: '5 kg' },
+  { value: '10 kg', label: '10 kg' },
+  { value: '25 kg (Bag)', label: '25 kg (Bag)' },
 ];
 
 export default function SubProductForm() {
@@ -44,42 +54,88 @@ export default function SubProductForm() {
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const { products, getSubProductById, addSubProduct, updateSubProduct } = useAdminData();
+  const { showToast } = useToast();
+  const { products: contextProducts, getSubProductById, addSubProduct, updateSubProduct } = useAdminData();
 
+  const [availableProducts, setAvailableProducts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    parentProductId: products[0]?.id || '',
-    parentProductName: products[0]?.name || 'Agro Chemicals',
-    targetPests: '',
-    recommendedCrops: '',
+    parentProductId: '',
+    parentProductName: '',
     dosage: '',
-    packagingSizes: ['100 gm', '250 gm', '500 gm', '1 Kg'],
+    packSizes: ['250 ml', '500 ml', '1 Litre'],
     shortDescription: '',
     description: '',
     status: 'Active',
     images: [],
   });
 
-  const [customSizeInput, setCustomSizeInput] = useState('');
+
   const [errors, setErrors] = useState({});
   const [isDragging, setIsDragging] = useState(false);
 
+  // Fetch all products from API & Context to populate the product dropdown
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      try {
+        const res = await getProductsApi({ limit: 200 });
+        if (res.success && Array.isArray(res.data?.products) && res.data.products.length > 0) {
+          setAvailableProducts(res.data.products);
+          if (!formData.parentProductId) {
+            setFormData((prev) => ({
+              ...prev,
+              parentProductId: res.data.products[0]._id || res.data.products[0].id,
+              parentProductName: res.data.products[0].name,
+            }));
+          }
+        } else if (contextProducts && contextProducts.length > 0) {
+          setAvailableProducts(contextProducts);
+          if (!formData.parentProductId) {
+            setFormData((prev) => ({
+              ...prev,
+              parentProductId: contextProducts[0].id,
+              parentProductName: contextProducts[0].name,
+            }));
+          }
+        }
+      } catch (e) {
+        if (contextProducts && contextProducts.length > 0) {
+          setAvailableProducts(contextProducts);
+          if (!formData.parentProductId) {
+            setFormData((prev) => ({
+              ...prev,
+              parentProductId: contextProducts[0].id,
+              parentProductName: contextProducts[0].name,
+            }));
+          }
+        }
+      }
+    };
+
+    fetchAllProducts();
+  }, [contextProducts]);
+
+  // Load existing sub-product data in edit mode
   useEffect(() => {
     if (isEditMode) {
       const existing = getSubProductById(id);
       if (existing) {
-        // Parse packaging sizes
+        // Parse pack sizes
         let parsedSizes = [];
-        if (Array.isArray(existing.packagingSizes)) {
+        if (Array.isArray(existing.packSizes)) {
+          parsedSizes = existing.packSizes;
+        } else if (Array.isArray(existing.packagingSizes)) {
           parsedSizes = existing.packagingSizes;
+        } else if (typeof existing.packSizes === 'string' && existing.packSizes) {
+          parsedSizes = existing.packSizes.split(',').map((s) => s.trim()).filter(Boolean);
         } else if (typeof existing.packagingSizes === 'string' && existing.packagingSizes) {
           parsedSizes = existing.packagingSizes.split(',').map((s) => s.trim()).filter(Boolean);
-        } else if (existing.packSizes) {
-          parsedSizes = existing.packSizes.split(',').map((s) => s.trim()).filter(Boolean);
         }
 
         if (parsedSizes.length === 0) {
-          parsedSizes = ['100 gm', '250 gm', '500 gm', '1 Kg'];
+          parsedSizes = ['250 ml', '500 ml', '1 Litre'];
         }
 
         // Collect existing images
@@ -91,13 +147,11 @@ export default function SubProductForm() {
 
         setFormData({
           name: existing.name || '',
-          parentProductId: existing.parentProductId || products[0]?.id || '',
-          parentProductName: existing.parentProductName || products[0]?.name || 'Agro Chemicals',
-          targetPests: existing.targetPests || '',
-          recommendedCrops: existing.recommendedCrops || '',
+          parentProductId: existing.parentProductId || '',
+          parentProductName: existing.parentProductName || '',
           dosage: existing.dosage || '',
-          packagingSizes: parsedSizes,
-          shortDescription: existing.shortDescription || '',
+          packSizes: parsedSizes,
+          shortDescription: (existing.shortDescription || '').replace(/<[^>]+>/g, ''),
           description: existing.description || '',
           status: existing.status || 'Active',
           images: existingImages,
@@ -106,12 +160,14 @@ export default function SubProductForm() {
         navigate('/admin/sub-products');
       }
     }
-  }, [id, isEditMode, getSubProductById, navigate, products]);
+  }, [id, isEditMode, getSubProductById, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'parentProductId') {
-      const selectedParent = products.find((p) => p.id === value);
+      const selectedParent = availableProducts.find(
+        (p) => (p._id === value || p.id === value)
+      );
       setFormData((prev) => ({
         ...prev,
         parentProductId: value,
@@ -126,56 +182,79 @@ export default function SubProductForm() {
     }
   };
 
-  // Packaging size handlers
-  const handleSelectSize = (e) => {
-    const selected = e.target.value;
-    if (!selected) return;
-    if (!formData.packagingSizes.includes(selected)) {
-      setFormData((prev) => ({
-        ...prev,
-        packagingSizes: [...prev.packagingSizes, selected],
-      }));
-    }
-    e.target.value = '';
+  // Helper to compress uploaded images using HTML5 Canvas
+  const compressImage = (file, maxWidth = 1000, maxHeight = 1000, quality = 0.75) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width / height > maxWidth / maxHeight) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressedBase64);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleAddCustomSize = () => {
-    const trimmed = customSizeInput.trim();
-    if (trimmed && !formData.packagingSizes.includes(trimmed)) {
-      setFormData((prev) => ({
-        ...prev,
-        packagingSizes: [...prev.packagingSizes, trimmed],
-      }));
-      setCustomSizeInput('');
-    }
-  };
-
-  const handleRemoveSize = (sizeToRemove) => {
-    setFormData((prev) => ({
-      ...prev,
-      packagingSizes: prev.packagingSizes.filter((s) => s !== sizeToRemove),
-    }));
-  };
-
-  // Multiple image upload handlers
-  const handleFiles = (files) => {
+  // Multiple image upload handlers - saves files to backend uploads/sub-products/ folder
+  const handleFiles = async (files) => {
     const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
     if (validFiles.length === 0) return;
 
-    const readers = validFiles.map((file) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
-    });
+    setIsUploadingImages(true);
+    try {
+      // 1. Compress images for fast upload
+      const compressionPromises = validFiles.map((file) => compressImage(file, 1000, 1000, 0.8));
+      const compressedImages = await Promise.all(compressionPromises);
 
-    Promise.all(readers).then((newImages) => {
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, ...newImages],
-      }));
-    });
+      // 2. Upload to server project folder (assets/subproduct/)
+      const uploadRes = await uploadImagesApi(compressedImages, 'subproduct');
+      if (uploadRes && uploadRes.success && Array.isArray(uploadRes.data?.urls) && uploadRes.data.urls.length > 0) {
+        const storedUrls = uploadRes.data.urls;
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, ...storedUrls],
+        }));
+        showToast(`${storedUrls.length} ${storedUrls.length === 1 ? 'image' : 'images'} stored to assets/subproduct folder!`, 'success');
+      } else {
+        // Fallback to compressed base64 if server upload fails
+        setFormData((prev) => ({
+          ...prev,
+          images: [...prev.images, ...compressedImages],
+        }));
+      }
+
+      if (errors.images) {
+        setErrors((prev) => ({ ...prev, images: '' }));
+      }
+    } catch (err) {
+      console.error('Error uploading images to server folder:', err);
+      showToast('Error uploading images to server folder', 'error');
+    } finally {
+      setIsUploadingImages(false);
+    }
   };
 
   const handleFileInputChange = (e) => {
@@ -218,16 +297,17 @@ export default function SubProductForm() {
         images: [selected, ...others],
       };
     });
+    showToast('Cover photo updated!', 'success');
   };
 
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim()) errs.name = 'Sub-product brand / trade name is required.';
-    if (!formData.dosage.trim()) errs.dosage = 'Recommended dosage & application rate is required.';
+    if (!formData.name.trim()) errs.name = 'Product name is required.';
+    if (!formData.shortDescription.trim()) errs.shortDescription = 'Short summary is required.';
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -236,22 +316,75 @@ export default function SubProductForm() {
       return;
     }
 
-    const payload = {
-      ...formData,
-      image: formData.images.length > 0 ? formData.images[0] : '/images/products/premium_dummy.jpg',
-      images: formData.images.length > 0 ? formData.images : ['/images/products/premium_dummy.jpg'],
-      packSizes: formData.packagingSizes.join(', '),
-      packagingSizes: formData.packagingSizes,
-    };
+    setIsSubmitting(true);
 
-    if (isEditMode) {
-      updateSubProduct(id, payload);
-    } else {
-      addSubProduct(payload);
+    try {
+      // 1. Ensure all base64 images (if any) are uploaded to project folder first
+      let finalImages = [...formData.images];
+      const base64Images = finalImages.filter((img) => typeof img === 'string' && img.startsWith('data:image/'));
+      if (base64Images.length > 0) {
+        const uploadRes = await uploadImagesApi(base64Images, 'subproduct');
+        if (uploadRes && uploadRes.success && Array.isArray(uploadRes.data?.urls)) {
+          let urlIdx = 0;
+          finalImages = finalImages.map((img) => {
+            if (typeof img === 'string' && img.startsWith('data:image/')) {
+              const assigned = uploadRes.data.urls[urlIdx] || img;
+              urlIdx++;
+              return assigned;
+            }
+            return img;
+          });
+        }
+      }
+
+      // 2. Primary image URL & images URL array
+      const primaryImageUrl = finalImages.length > 0 ? finalImages[0] : '/images/products/premium_dummy.jpg';
+
+      const payload = {
+        name: formData.name.trim(),
+        productId: formData.parentProductId,
+        parentProductId: formData.parentProductId,
+        parentProductName: formData.parentProductName,
+        dosage: formData.dosage,
+        packagingSizes: formData.packSizes,
+        packSizes: formData.packSizes.join(', '),
+        shortDescription: formData.shortDescription.trim(),
+        description: formData.description,
+        image: primaryImageUrl,
+        images: finalImages.length > 0 ? finalImages : ['/images/products/premium_dummy.jpg'],
+        status: formData.status || 'Active',
+      };
+
+      if (isEditMode) {
+        if (/^[0-9a-fA-F]{24}$/.test(id)) {
+          await updateSubProductApi(id, payload);
+        }
+        await updateSubProduct(id, payload);
+        showToast('Sub-Product updated successfully!', 'success');
+      } else {
+        const res = await createSubProductApi(payload);
+        if (res && res.success && res.data) {
+          const created = res.data;
+          await addSubProduct({
+            ...payload,
+            id: created._id || created.id,
+            _id: created._id || created.id,
+            skipApi: true,
+          });
+        } else {
+          await addSubProduct(payload);
+        }
+        showToast('Sub-Product created successfully with image URLs!', 'success');
+      }
+      navigate('/admin/sub-products');
+    } catch (err) {
+      console.error('Error saving subproduct to database:', err);
+      showToast('Error saving sub-product to database', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    navigate('/admin/sub-products');
   };
+
 
   return (
     <div className="admin-subproduct-form-page">
@@ -263,7 +396,7 @@ export default function SubProductForm() {
           </h1>
           <p className="admin-page-subtitle">
             {isEditMode
-              ? `Update packaging sizes, dosage recommendations, and properties for (${id})`
+              ? `Update packaging sizes, specifications, and properties for (${id})`
               : 'Add an agricultural chemical formulation and packaging item to the catalog'}
           </p>
         </div>
@@ -278,24 +411,24 @@ export default function SubProductForm() {
       {/* Main Form Container */}
       <div className="admin-form-container">
         <form onSubmit={handleSubmit} noValidate>
-          {/* Section 1: Basic Information */}
+          {/* Section 1: Product Identification & Summary */}
           <div className="admin-form-section-title">
             <FlaskConical size={18} className="text-emerald-700" />
-            <span>Product Identification & Category</span>
+            <span>Product Identification &amp; Selection</span>
           </div>
 
           <div className="admin-form-grid-2">
-            {/* Brand / Trade Name */}
+            {/* Product Name */}
             <div className="admin-form-group">
               <label htmlFor="sub-name" className="admin-form-label">
-                Brand / Trade Name <span className="required">*</span>
+                Product Name <span className="required">*</span>
               </label>
               <input
                 id="sub-name"
                 name="name"
                 type="text"
                 className={`admin-form-input ${errors.name ? 'error' : ''}`}
-                placeholder="e.g. AADHIRA WG, BITCOIN SG"
+                placeholder="e.g. Aadhira WG, Bitcoin SG, Redprid"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -303,10 +436,10 @@ export default function SubProductForm() {
               {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
             </div>
 
-            {/* Parent Product Line */}
+            {/* Select Product Dropdown (All Products) */}
             <div className="admin-form-group">
               <label htmlFor="sub-parent" className="admin-form-label">
-                Parent Product Line
+                Select Product <span className="required">*</span>
               </label>
               <AdminSelect
                 id="sub-parent"
@@ -314,8 +447,9 @@ export default function SubProductForm() {
                 value={formData.parentProductId}
                 onChange={(e) => handleChange(e)}
                 searchable={true}
-                options={products.map((p) => ({
-                  value: p.id,
+                placeholder="Select product from catalog..."
+                options={availableProducts.map((p) => ({
+                  value: p._id || p.id,
                   label: p.name,
                   badge: p.category,
                 }))}
@@ -323,158 +457,142 @@ export default function SubProductForm() {
             </div>
           </div>
 
-          {/* Section 2: Field Usage & Packaging */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <Package size={18} className="text-emerald-700" />
-            <span>Field Usage & Packaging Specifications</span>
+          {/* Short Summary * (Single-line / Text Input matching ProductForm) */}
+          <div className="admin-form-group">
+            <label htmlFor="sub-short-desc" className="admin-form-label">
+              Short Summary <span className="required">*</span>
+            </label>
+            <input
+              id="sub-short-desc"
+              name="shortDescription"
+              type="text"
+              className={`admin-form-input ${errors.shortDescription ? 'error' : ''}`}
+              placeholder="Brief summary for listings, cards, and catalog search..."
+              value={formData.shortDescription}
+              onChange={handleChange}
+              required
+            />
+            {errors.shortDescription && (
+              <span className="admin-form-error-msg">{errors.shortDescription}</span>
+            )}
           </div>
 
-          <div className="admin-form-grid-2">
-            {/* Target Pests */}
-            <div className="admin-form-group">
-              <label htmlFor="sub-pests" className="admin-form-label">
-                Target Pests / Diseases
-              </label>
-              <input
-                id="sub-pests"
-                name="targetPests"
-                type="text"
-                className="admin-form-input"
-                placeholder="e.g. Bollworm, Aphids, Jassids, Stem Borer"
-                value={formData.targetPests}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* Recommended Crops */}
-            <div className="admin-form-group">
-              <label htmlFor="sub-crops" className="admin-form-label">
-                Recommended Crops
-              </label>
-              <input
-                id="sub-crops"
-                name="recommendedCrops"
-                type="text"
-                className="admin-form-input"
-                placeholder="e.g. Cotton, Paddy (Rice), Chilli, Tomato, Groundnut"
-                value={formData.recommendedCrops}
-                onChange={handleChange}
-              />
-            </div>
+          {/* Section 2: Packaging Sizes & Dosage */}
+          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
+            <Package size={18} className="text-emerald-700" />
+            <span>Packaging &amp; Application Details</span>
           </div>
 
           <div className="admin-form-grid-2">
             {/* Dosage */}
             <div className="admin-form-group">
               <label htmlFor="sub-dosage" className="admin-form-label">
-                Dosage & Dilution Rate <span className="required">*</span>
+                Dosage &amp; Dilution Rate
               </label>
               <input
                 id="sub-dosage"
                 name="dosage"
                 type="text"
-                className={`admin-form-input ${errors.dosage ? 'error' : ''}`}
-                placeholder="e.g. 80 - 100 gm per acre dissolved in 200 L water"
+                className="admin-form-input"
+                placeholder="e.g. 1.2 ml per litre or 80 - 100 gm per acre"
                 value={formData.dosage}
                 onChange={handleChange}
-                required
               />
-              {errors.dosage && <span className="admin-form-error-msg">{errors.dosage}</span>}
             </div>
 
-            {/* Packaging Sizes Dropdown & Chips */}
+            {/* Available Packaging Sizes (Select Dropdown - Exactly like Product create page) */}
             <div className="admin-form-group">
               <label className="admin-form-label">
                 Available Packaging Sizes (Select Dropdown)
               </label>
               <div className="admin-pack-size-selector-wrap">
-                {/* Size Dropdown */}
                 <AdminSelect
                   id="packaging-size-preset"
                   name="packagingPreset"
                   value=""
-                  placeholder="➕ Select / Add Packaging Size..."
-                  onChange={(e, val) => {
-                    const selected = val || e.target.value;
-                    if (selected && !formData.packagingSizes.includes(selected)) {
+                  onChange={(e) => {
+                    const selectedVal = e.target.value;
+                    if (selectedVal && !formData.packSizes.includes(selectedVal)) {
                       setFormData((prev) => ({
                         ...prev,
-                        packagingSizes: [...prev.packagingSizes, selected],
+                        packSizes: [...prev.packSizes, selectedVal],
                       }));
                     }
                   }}
                   searchable={true}
-                  options={PRESET_PACKAGING_SIZES.map((size) => ({
-                    value: size,
-                    label: size,
-                    badge: formData.packagingSizes.includes(size) ? 'Added' : 'Add',
-                  }))}
+                  options={PACKAGING_SIZE_OPTIONS.filter((opt) => !formData.packSizes.includes(opt.value))}
+                  placeholder="Select packaging size to add..."
                 />
-
-                {/* Custom Size Addition */}
-                <div className="admin-custom-size-row">
-                  <input
-                    type="text"
-                    className="admin-form-input"
-                    placeholder="Or enter custom size (e.g. 15 Kg Bag)"
-                    value={customSizeInput}
-                    onChange={(e) => setCustomSizeInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomSize();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn-admin-secondary"
-                    onClick={handleAddCustomSize}
-                    style={{ padding: '0.65rem 1rem', whiteSpace: 'nowrap' }}
-                  >
-                    <Plus size={14} />
-                    <span>Add Size</span>
-                  </button>
-                </div>
               </div>
 
-              {/* Selected Packaging Badges */}
-              <div className="admin-selected-sizes-chips">
-                {formData.packagingSizes.length === 0 ? (
-                  <span className="admin-no-sizes-msg">No packaging sizes selected. Choose from dropdown above.</span>
+              {/* Selected Pack Sizes Chips */}
+              <div
+                className="admin-selected-sizes-chips"
+                style={{
+                  marginTop: '0.75rem',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                  padding: '0.75rem',
+                  background: '#F7FAF9',
+                  border: '1px solid #DDE5E1',
+                  borderRadius: '8px',
+                  minHeight: '48px',
+                  alignItems: 'center',
+                }}
+              >
+                {formData.packSizes.length === 0 ? (
+                  <span className="admin-no-sizes-msg" style={{ fontSize: '0.82rem', color: '#7A8983' }}>
+                    No packaging sizes selected. Choose sizes from the dropdown above.
+                  </span>
                 ) : (
-                  formData.packagingSizes.map((size) => (
-                    <span key={size} className="admin-size-chip">
-                      <Tag size={12} />
+                  formData.packSizes.map((size) => (
+                    <span
+                      key={size}
+                      className="admin-size-chip"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        background: '#ffffff',
+                        color: '#0F6B4F',
+                        border: '1px solid #DDF5EA',
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        boxShadow: '0 1px 2px rgba(23,43,36,0.05)',
+                      }}
+                    >
+                      <Tag size={13} />
                       <span>{size}</span>
                       <button
                         type="button"
-                        className="btn-remove-chip"
-                        onClick={() => handleRemoveSize(size)}
+                        className="btn-remove-size"
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            packSizes: prev.packSizes.filter((s) => s !== size),
+                          }));
+                        }}
                         title={`Remove ${size}`}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          padding: 0,
+                          marginLeft: '4px',
+                          color: '#0F6B4F',
+                        }}
                       >
-                        <X size={12} />
+                        <X size={13} />
                       </button>
                     </span>
                   ))
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Short Description */}
-          <div className="admin-form-group">
-            <label htmlFor="sub-short-desc" className="admin-form-label">
-              Short Description / Summary
-            </label>
-            <RichTextEditor
-              id="sub-short-desc"
-              name="shortDescription"
-              value={formData.shortDescription}
-              onChange={handleChange}
-              placeholder="Summary of product mode of action and rapid knockdown properties..."
-              minHeight="140px"
-            />
           </div>
 
           {/* Detailed Description */}
@@ -487,15 +605,15 @@ export default function SubProductForm() {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Provide comprehensive instructions for farmers, mixing compatibility with other agrochemicals, spray intervals, and harvest interval safety..."
-              minHeight="180px"
+              placeholder="Provide comprehensive instructions for farmers, mixing compatibility with other agrochemicals, spray intervals..."
+              minHeight="160px"
             />
           </div>
 
           {/* Section 3: Multiple Image Upload & Gallery Preview */}
           <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <ImagePlus size={18} className="text-emerald-700" />
-            <span>Product Gallery & Images Upload</span>
+            <ImagePlus size={18} style={{ color: '#0F6B4F' }} />
+            <span>Product Gallery &amp; Images Upload</span>
           </div>
 
           {/* Upload Dropzone */}
@@ -516,15 +634,28 @@ export default function SubProductForm() {
             />
             <div className="admin-upload-zone-content">
               <div className="admin-upload-icon-circle">
-                <UploadCloud size={28} />
+                <UploadCloud size={28} className={isUploadingImages ? 'animate-bounce' : ''} />
               </div>
               <div className="admin-upload-text">
-                <p className="admin-upload-title">
-                  <strong>Click to upload</strong> or drag and drop sub-product images
-                </p>
-                <p className="admin-upload-sub">
-                  Supported formats: PNG, JPG, JPEG, WEBP • Max size: 5MB per image
-                </p>
+                {isUploadingImages ? (
+                  <>
+                    <p className="admin-upload-title" style={{ color: '#0F6B4F' }}>
+                      <strong>Uploading images to project folder...</strong>
+                    </p>
+                    <p className="admin-upload-sub">
+                      Saving image files and generating URLs for database...
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="admin-upload-title">
+                      <strong>Click to upload</strong> or drag and drop sub-product images
+                    </p>
+                    <p className="admin-upload-sub">
+                      Stored on server folder (<code>assets/subproduct/</code>) • Saved as clean URLs in DB
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -556,7 +687,7 @@ export default function SubProductForm() {
                       {idx === 0 && (
                         <div className="admin-cover-badge">
                           <Star size={12} fill="#ffffff" />
-                          <span>COVER PHOTO</span>
+                          <span>Cover Photo</span>
                         </div>
                       )}
                     </div>
@@ -601,9 +732,15 @@ export default function SubProductForm() {
             <Link to="/admin/sub-products" className="btn-admin-secondary">
               Cancel
             </Link>
-            <button type="submit" className="btn-admin-primary">
+            <button type="submit" className="btn-admin-primary" disabled={isSubmitting}>
               <Check size={16} strokeWidth={2.5} />
-              <span>{isEditMode ? 'Update Sub-Product' : 'Create Sub-Product'}</span>
+              <span>
+                {isSubmitting
+                  ? 'Saving to Database...'
+                  : isEditMode
+                  ? 'Update Sub-Product'
+                  : 'Create Sub-Product'}
+              </span>
             </button>
           </div>
         </form>

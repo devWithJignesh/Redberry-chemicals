@@ -1,53 +1,89 @@
+/* ============================================
+   PRODUCT CARD COMPONENT
+   FILE: ProductCard.jsx
+   Clean, Minimalist, Modern Card UI
+   ============================================ */
+
 import { Link } from 'react-router-dom';
+import { Package } from 'lucide-react';
 import './ProductCard.css';
 
-export default function ProductCard({ product }) {
+export function ProductCard({ product }) {
   const {
     id,
-    slug,
+    _id,
     name,
-    technicalName,
-    category,
-    tag,
     image,
-    description,
+    category,
+    dosage,
+    packSizes,
     shortDescription,
+    description,
+    price,
   } = product;
 
-  const productUrl = `/products/view/${id || slug || 'redprid-super'}`;
-  const summaryText = shortDescription || description || '';
+  const productId = _id || id || 'default';
+  const productUrl = `/products/view/${productId}`;
+  const summaryText = (shortDescription || description || '').replace(/<[^>]+>/g, '');
+
+  // Right-side value in header row (price, dosage, or category)
+  const headerRightValue = price ? `$${price}` : (dosage ? `Dosage: ${dosage}` : (category || ''));
 
   return (
-    <div className="product-card">
-      <Link to={productUrl} className="product-card-media" title={`View details for ${name}`}>
-        <img src={image} alt={name} className="product-card-img" />
-        {tag && <span className="product-tag-badge">{tag}</span>}
-        <span className="product-category-chip">{category}</span>
+    <div className="pc-card">
+      {/* Top Media Container */}
+      <Link to={productUrl} className="pc-media-box" title={`View details for ${name || 'Product'}`}>
+        <div className="pc-image-inner">
+          {image ? (
+            <img
+              src={image}
+              alt={name || 'Product'}
+              className="pc-img"
+              onError={(e) => {
+                e.target.src = '/images/products/premium_dummy.jpg';
+              }}
+            />
+          ) : (
+            <div className="pc-no-img">
+              <Package size={36} />
+              <span>No image</span>
+            </div>
+          )}
+        </div>
       </Link>
 
-      <div className="product-card-body">
-        <div>
-          <h3 className="product-title">
-            <Link to={productUrl} style={{ color: 'inherit', textDecoration: 'none' }}>
-              {name}
+      {/* Card Content */}
+      <div className="pc-body">
+        {/* Title & Price/Spec Header Row */}
+        <div className="pc-header-row">
+          <h3 className="pc-title">
+            <Link to={productUrl} className="pc-title-link">
+              {name || 'Product Name'}
             </Link>
           </h3>
-          {technicalName && <span className="product-technical">{technicalName}</span>}
-          <p className="product-desc">
-            {summaryText.length > 95 ? summaryText.substring(0, 95) + '...' : summaryText}
-          </p>
+          {headerRightValue && (
+            <span className="pc-price-tag">
+              {headerRightValue}
+            </span>
+          )}
         </div>
 
-        <div className="product-card-footer" style={{ marginTop: 'auto' }}>
-          <Link
-            to={productUrl}
-            className="btn btn-primary"
-            style={{ width: '100%', justifyContent: 'center', textAlign: 'center' }}
-          >
-            View Details →
+        {/* Short Description */}
+        {summaryText && (
+          <p className="pc-desc">
+            {summaryText.length > 95 ? summaryText.substring(0, 95) + '...' : summaryText}
+          </p>
+        )}
+
+        {/* Bottom Action Button (Pill shaped) */}
+        <div className="pc-footer">
+          <Link to={productUrl} className="pc-btn-pill">
+            Details
           </Link>
         </div>
       </div>
     </div>
   );
 }
+
+export default ProductCard;

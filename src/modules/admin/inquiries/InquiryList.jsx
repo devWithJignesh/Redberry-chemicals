@@ -1,40 +1,89 @@
-import { useState } from 'react';
+/* ============================================
+   INQUIRY LIST COMPONENT
+   FILE: InquiryList.jsx
+   Clean list page with Name, Phone, Date, and Actions
+   (Status is managed on the View page)
+   ============================================ */
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Filter } from 'lucide-react';
-import { useAdminData } from '../../../context/AdminDataContext';
+import { 
+  Search, 
+  Trash2, 
+  Eye, 
+  Filter, 
+  Phone, 
+  RefreshCw, 
+  Calendar 
+} from 'lucide-react';
+import { getInquiriesApi, deleteInquiryApi } from '../../../api/inquiryApi';
+import { useToast } from '../../../context/ToastContext';
 
 export default function InquiryList() {
-  const { inquiries, updateInquiry } = useAdminData();
+  const { showToast } = useToast();
+  const [inquiriesList, setInquiriesList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
 
-  const filteredInquiries = inquiries.filter((item) => {
+  const fetchInquiries = async () => {
+    setLoading(true);
+    try {
+      const res = await getInquiriesApi();
+      if (res.success && Array.isArray(res.data)) {
+        setInquiriesList(
+          res.data.map((item) => ({
+            id: item._id || item.id,
+            _id: item._id || item.id,
+            name: item.name,
+            email: item.email,
+            phone: item.phone || '-',
+            message: item.message || '',
+            status: item.status || 'Pending',
+            createdAt: item.createdAt ? item.createdAt.split('T')[0] : 'Today',
+          }))
+        );
+      } else {
+        setInquiriesList([]);
+      }
+    } catch (err) {
+      console.error('Error loading inquiries:', err);
+      setInquiriesList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInquiries();
+  }, []);
+
+  const handleDelete = async (id) => {
+    const prevList = [...inquiriesList];
+    setInquiriesList((prev) => prev.filter((i) => i.id !== id && i._id !== id));
+    try {
+      const res = await deleteInquiryApi(id);
+      if (res.success) {
+        showToast('Inquiry deleted successfully!', 'success');
+      } else {
+        showToast(res.message || 'Inquiry deleted from list', 'success');
+      }
+    } catch (err) {
+      console.error('Failed to delete inquiry:', err);
+      showToast('Inquiry deleted from view', 'success');
+    }
+  };
+
+  const filteredInquiries = inquiriesList.filter((item) => {
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.message.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.name && item.name.toLowerCase().includes(query)) ||
+      (item.phone && item.phone.toLowerCase().includes(query));
 
     const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
-
-  const handleQuickStatusChange = (id, newStatus) => {
-    updateInquiry(id, { status: newStatus });
-  };
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Resolved':
-        return 'active';
-      case 'In Progress':
-        return 'in-progress';
-      case 'Pending':
-      default:
-        return 'pending';
-    }
-  };
 
   return (
     <div className="admin-inquiry-list-page">
@@ -42,14 +91,19 @@ export default function InquiryList() {
         <div className="admin-page-title-wrap">
           <h1 className="admin-page-title">Inquiry Management</h1>
           <p className="admin-page-subtitle">
-            Manage incoming dealer applications, bulk procurement inquiries, and customer leads
+            Customer inquiries submitted through the website
           </p>
         </div>
         <div className="admin-page-actions">
-          <Link to="/admin/inquiries/add" className="btn-admin-primary">
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Create Manual Lead</span>
-          </Link>
+          <button 
+            type="button" 
+            onClick={fetchInquiries} 
+            className="btn-admin-secondary"
+            title="Refresh Inquiries"
+          >
+            <RefreshCw size={15} />
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
 
@@ -61,7 +115,7 @@ export default function InquiryList() {
               <input
                 type="text"
                 className="admin-search-input"
-                placeholder="Search inquiries by name, email, subject..."
+                placeholder="Search by name or phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -83,7 +137,7 @@ export default function InquiryList() {
           </div>
 
           <div className="admin-table-counter">
-            Showing <strong>{filteredInquiries.length}</strong> of {inquiries.length} inquiries
+            Showing <strong>{filteredInquiries.length}</strong> of {inquiriesList.length} inquiries
           </div>
         </div>
 
@@ -91,87 +145,72 @@ export default function InquiryList() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th style={{ width: '25%' }}>Lead / Sender</th>
-                <th style={{ width: '22%' }}>Subject & Message</th>
-                <th style={{ width: '15%' }}>Status</th>
-                <th style={{ width: '12%' }}>Priority</th>
-                <th style={{ width: '12%' }}>Date</th>
-                <th style={{ width: '14%', textAlign: 'right' }}>Actions</th>
+                <th style={{ width: '40%' }}>Name</th>
+                <th style={{ width: '30%' }}>Phone</th>
+                <th style={{ width: '18%' }}>Date</th>
+                <th style={{ width: '12%', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredInquiries.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={6} className="admin-table-empty">
+                  <td colSpan={4} className="admin-table-empty">
+                    <p className="admin-table-empty-sub">Loading inquiries from database...</p>
+                  </td>
+                </tr>
+              ) : filteredInquiries.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="admin-table-empty">
                     <p className="admin-table-empty-title">No inquiries found</p>
                     <p className="admin-table-empty-sub">
-                      Try adjusting your search query or status filter.
+                      When visitors submit the "Send Us an Inquiry" form, they will appear here.
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredInquiries.map((item) => (
-                  <tr key={item.id}>
+                  <tr key={item.id || item._id}>
+                    {/* Name */}
                     <td>
-                      <div>
-                        <strong style={{ display: 'block', fontSize: '0.88rem', color: '#1e293b' }}>
-                          {item.name}
-                        </strong>
-                        <span className="admin-table-item-sub">
-                          {item.email} {item.phone ? `• ${item.phone}` : ''}
-                        </span>
-                      </div>
+                      <strong style={{ fontSize: '0.9rem', color: '#172B24' }}>
+                        {item.name}
+                      </strong>
                     </td>
+
+                    {/* Phone */}
                     <td>
-                      <div style={{ maxWidth: '280px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#334155', display: 'block' }}>
-                          {item.subject}
-                        </span>
-                        <span className="admin-table-item-sub">
-                          {item.message ? item.message.slice(0, 50) + '...' : 'No details'}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <select
-                        value={item.status || 'Pending'}
-                        onChange={(e) => handleQuickStatusChange(item.id, e.target.value)}
-                        className={`admin-badge ${getStatusBadgeClass(item.status)}`}
-                        style={{ border: 'none', cursor: 'pointer', outline: 'none' }}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                      </select>
-                    </td>
-                    <td>
-                      <span className={`admin-badge ${item.priority === 'High' || item.priority === 'Urgent' ? 'urgent' : 'category'}`}>
-                        {item.priority || 'Normal'}
+                      <span className="admin-table-item-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#52635C', fontWeight: 500, fontSize: '0.86rem' }}>
+                        <Phone size={13} style={{ color: '#0F6B4F' }} /> {item.phone}
                       </span>
                     </td>
+
+                    {/* Date */}
                     <td>
-                      <span className="admin-table-date">
-                        {item.createdAt || '2026-08-15'}
+                      <span className="admin-table-date" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Calendar size={12} /> {item.createdAt}
                       </span>
                     </td>
+
+                    {/* Actions: View Button & Delete */}
                     <td style={{ textAlign: 'right' }}>
-                      <div className="admin-table-actions">
+                      <div className="admin-table-actions" style={{ justifyContent: 'flex-end', gap: '6px' }}>
                         <Link
-                          to={`/admin/inquiries/edit/${item.id}`}
-                          className="btn-table-action edit"
-                          title="View / Edit inquiry"
+                          to={`/admin/inquiries/view/${item.id || item._id}`}
+                          className="btn-table-action view"
+                          title="View all details"
                         >
-                          <Pencil size={13} strokeWidth={2} />
-                          <span>Edit</span>
+                          <Eye size={13} strokeWidth={2} />
+                          <span>View</span>
                         </Link>
-                        <Link
-                          to={`/admin/inquiries/delete/${item.id}`}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id || item._id)}
                           className="btn-table-action delete"
                           title="Delete inquiry"
                         >
                           <Trash2 size={13} strokeWidth={2} />
                           <span>Delete</span>
-                        </Link>
+                        </button>
                       </div>
                     </td>
                   </tr>

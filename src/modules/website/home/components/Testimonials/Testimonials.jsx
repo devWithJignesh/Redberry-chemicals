@@ -1,14 +1,43 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useOnScreen } from '../../../../../hooks/useOnScreen';
+import { getReviewsApi } from '../../../../../api/reviewApi';
 import './Testimonials.css';
 
-export default function Testimonials({ data }) {
-  const { badge, title, subtitle, testimonials } = data;
+export default function Testimonials({ data = {} }) {
+  const { badge, title, subtitle } = data;
+  const [testimonialsList, setTestimonialsList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [ref, isVisible] = useOnScreen({ threshold: 0.2 });
 
-  const total = testimonials?.length || 0;
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const res = await getReviewsApi();
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const mapped = res.data.map((r) => ({
+            id: r._id || r.id,
+            quote: r.description || r.review || r.title || 'Exceptional experience with Redberry products.',
+            author: r.name || 'Customer',
+            address: r.address || r.location || 'India',
+            rating: Number(r.rate) || 5,
+            image: r.image || '',
+            avatarInitials: (r.name || 'R').charAt(0).toUpperCase(),
+          }));
+          setTestimonialsList(mapped);
+        } else {
+          setTestimonialsList([]);
+        }
+      } catch (err) {
+        console.warn('Error fetching testimonials from reviews API:', err);
+        setTestimonialsList([]);
+      }
+    };
+
+    fetchReviews();
+  }, []);
+
+  const total = testimonialsList?.length || 0;
 
   const nextSlide = useCallback(() => {
     if (total === 0) return;
@@ -30,7 +59,7 @@ export default function Testimonials({ data }) {
     return () => clearInterval(interval);
   }, [isPaused, total, nextSlide]);
 
-  if (!testimonials || total === 0) return null;
+  if (!testimonialsList || total === 0) return null;
 
   return (
     <section
@@ -49,7 +78,7 @@ export default function Testimonials({ data }) {
         <div className="section-header">
           <span className="section-badge">{badge || 'Testimonials'}</span>
           <h2 className="section-title">{title || 'Trusted Across Indian Agriculture'}</h2>
-          <p className="section-description">{subtitle}</p>
+          <p className="section-description">{subtitle || 'Real feedback from commercial growers and dealers across India'}</p>
         </div>
 
         {/* Carousel Viewport */}
@@ -61,7 +90,7 @@ export default function Testimonials({ data }) {
                 transform: `translateX(-${currentIndex * 100}%)`,
               }}
             >
-              {testimonials.map((item, idx) => {
+              {testimonialsList.map((item, idx) => {
                 const authorDisplay = item.author || item.name || 'Verified Grower';
                 const avatar = item.avatarInitials || (authorDisplay.charAt(0) || 'R');
                 const rating = item.rating || 5;
@@ -75,16 +104,32 @@ export default function Testimonials({ data }) {
                       <p className="testimonial-quote">"{item.quote}"</p>
                     </div>
                     <div className="testimonial-author-wrap">
-                      <div className="author-avatar-badge">
-                        {avatar}
-                      </div>
+                      {item.image ? (
+                        <div className="author-avatar-img-wrap">
+                          <img
+                            src={item.image}
+                            alt={authorDisplay}
+                            className="author-avatar-img"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              if (e.target.nextSibling) {
+                                e.target.nextSibling.style.display = 'flex';
+                              }
+                            }}
+                          />
+                          <div className="author-avatar-badge" style={{ display: 'none' }}>
+                            {avatar}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="author-avatar-badge">
+                          {avatar}
+                        </div>
+                      )}
                       <div className="author-info">
                         <span className="author-name">{authorDisplay}</span>
-                        {item.location && (
-                          <span className="author-meta">{item.location}</span>
-                        )}
-                        {item.crop && (
-                          <span className="author-crop-tag">🌾 {item.crop}</span>
+                        {(item.address || item.location) && (
+                          <span className="author-meta">{item.address || item.location}</span>
                         )}
                       </div>
                     </div>
@@ -106,7 +151,7 @@ export default function Testimonials({ data }) {
                 ←
               </button>
               <div className="carousel-dots">
-                {testimonials.map((_, idx) => (
+                {testimonialsList.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"

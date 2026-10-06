@@ -84,9 +84,9 @@ export default function SubProductDelete() {
               <span className="admin-delete-preview-value">{packagingDisplay}</span>
             </div>
             <div className="admin-delete-preview-row">
-              <span className="admin-delete-preview-label">Target Pests / Crops:</span>
+              <span className="admin-delete-preview-label">Short Summary:</span>
               <span className="admin-delete-preview-value" style={{ maxWidth: '350px' }}>
-                {subProduct.targetPests || subProduct.recommendedCrops || 'General crops'}
+                {subProduct.shortDescription || 'Commercial formulation'}
               </span>
             </div>
           </div>

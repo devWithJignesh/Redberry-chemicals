@@ -199,7 +199,7 @@ export default function AdminDashboard() {
               <tbody>
                 {recentInquiries.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748b' }}>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#7A8983' }}>
                       No incoming inquiries recorded.
                     </td>
                   </tr>
@@ -208,20 +208,20 @@ export default function AdminDashboard() {
                     <tr key={inq.id}>
                       <td>
                         <div>
-                          <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a' }}>
+                          <strong style={{ display: 'block', fontSize: '0.85rem', color: '#172B24' }}>
                             {inq.name}
                           </strong>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#7A8983' }}>
                             {inq.email}
                           </span>
                         </div>
                       </td>
                       <td>
                         <div>
-                          <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#334155', display: 'block' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#52635C', display: 'block' }}>
                             {inq.subject}
                           </span>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#7A8983' }}>
                             {inq.message ? inq.message.slice(0, 48) + '...' : 'No details'}
                           </span>
                         </div>

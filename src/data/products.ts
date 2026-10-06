@@ -1,5 +1,4 @@
 import { Product } from "@/types";
-import { INSECTICIDES } from "./insecticides";
 
 export const CATEGORY_PRODUCTS: Product[] = [
   {
@@ -68,7 +67,7 @@ export const CATEGORY_PRODUCTS: Product[] = [
   },
 ];
 
-export const PRODUCTS: Product[] = [...INSECTICIDES, ...CATEGORY_PRODUCTS];
+export const PRODUCTS: Product[] = [...CATEGORY_PRODUCTS];
 
 export function getProductBySlug(slug: string): Product | undefined {
   return PRODUCTS.find((p) => p.slug === slug);

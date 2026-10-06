@@ -1,0 +1,103 @@
+/* ============================================
+   GLOBAL ADMIN LOADER STYLES
+   FILE: src/components/common/Loader/GlobalAdminLoader.css
+   ============================================ */
+
+.admin-global-loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(11, 19, 32, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: loaderFadeIn 0.25s ease-out forwards;
+}
+
+.admin-global-loader-card {
+  background: #172B24;
+  border: 1px solid rgba(34, 160, 107, 0.3);
+  border-radius: 20px;
+  padding: 2.2rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 30px rgba(34, 160, 107, 0.2);
+  text-align: center;
+}
+
+.admin-loader-spinner-wrapper {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(221, 245, 234, 0.2);
+  border-top-color: #22A06B;
+  animation: loaderSpin 0.9s linear infinite;
+}
+
+.admin-loader-icon {
+  font-size: 1.75rem;
+  animation: loaderPulse 1.5s ease-in-out infinite alternate;
+}
+
+.admin-loader-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-loader-title {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-loader-subtitle {
+  color: #DDF5EA;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+@keyframes loaderSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loaderPulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes loaderFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}

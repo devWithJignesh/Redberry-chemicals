@@ -1,26 +1,46 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Trash2, ShieldAlert } from 'lucide-react';
-import { useAdminData } from '../../../context/AdminDataContext';
+import { getProductByIdApi, deleteProductApi } from '../../../api/productApi';
+import { useToast } from '../../../context/ToastContext';
 
 export default function ProductDelete() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getProductById, deleteProduct } = useAdminData();
-
-  const product = getProductById(id);
+  const [product, setProduct] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    if (!product) {
-      navigate('/admin/products');
-    }
-  }, [product, navigate]);
+    const loadProduct = async () => {
+      try {
+        const res = await getProductByIdApi(id);
+        if (res.success && res.data) {
+          setProduct(res.data);
+        } else {
+          throw new Error('Product not found');
+        }
+      } catch (err) {
+        showToast('Product not found in database.', 'error');
+        navigate('/admin/products');
+      }
+    };
+    if (id) loadProduct();
+  }, [id, navigate, showToast]);
 
   if (!product) return null;
 
-  const handleConfirmDelete = () => {
-    deleteProduct(id);
-    navigate('/admin/products');
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteProductApi(id);
+      showToast(`Product "${product.name}" deleted successfully!`, 'success');
+      navigate('/admin/products');
+    } catch (err) {
+      showToast(err.message || 'Failed to delete product.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -69,7 +89,7 @@ export default function ProductDelete() {
             </div>
             <div className="admin-delete-preview-row">
               <span className="admin-delete-preview-label">Category:</span>
-              <span className="admin-delete-preview-value">{product.category}</span>
+              <span className="admin-delete-preview-value">{product.category || 'Insecticides'}</span>
             </div>
             <div className="admin-delete-preview-row">
               <span className="admin-delete-preview-label">Status:</span>
@@ -102,9 +122,10 @@ export default function ProductDelete() {
               type="button"
               className="btn-admin-danger"
               onClick={handleConfirmDelete}
+              disabled={isDeleting}
             >
               <Trash2 size={15} />
-              <span>Confirm Permanent Delete</span>
+              <span>{isDeleting ? 'Deleting...' : 'Confirm Permanent Delete'}</span>
             </button>
           </div>
         </div>

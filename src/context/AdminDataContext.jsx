@@ -1,82 +1,42 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { CATEGORY_PRODUCTS } from '../data/products';
-import { INSECTICIDES } from '../data/insecticides';
-import { CUSTOMER_REVIEWS } from '../data/reviews';
+import { 
+  getSubProductsApi, 
+  createSubProductApi, 
+  updateSubProductApi, 
+  deleteSubProductApi 
+} from '../api/subProductApi';
+import {
+  getInquiriesApi,
+  createInquiryApi,
+  updateInquiryApi,
+  deleteInquiryApi,
+} from '../api/inquiryApi';
+import {
+  getReviewsApi,
+  createReviewApi,
+  updateReviewApi,
+  deleteReviewApi,
+} from '../api/reviewApi';
 
 const AdminDataContext = createContext(null);
 
-const STORAGE_KEYS = {
-  PRODUCTS: 'redberry_admin_products',
-  SUB_PRODUCTS: 'redberry_admin_sub_products',
-  REVIEWS: 'redberry_admin_reviews',
-  INQUIRIES: 'redberry_admin_inquiries',
-};
-
-const INITIAL_INQUIRIES = [
-  {
-    id: 'inq-101',
-    name: 'Shailesh Patel',
-    email: 'shailesh.farm@gmail.com',
-    phone: '9876543210',
-    subject: 'Distributor Inquiry for Saurashtra Region',
-    category: 'Dealership / Distribution',
-    message: 'We operate 3 agro-input retail outlets in Rajkot & Junagadh. Interested in stocking Redberry Aadhira, Bitcoin, and Chlocyp 505 for the upcoming cotton and groundnut season. Please share dealership price sheet and credit terms.',
-    status: 'Pending',
-    priority: 'High',
-    date: '2026-09-28',
-    notes: 'Awaiting phone follow-up by regional sales manager.',
-  },
-  {
-    id: 'inq-102',
-    name: 'Dr. Arvind Sharma',
-    email: 'arvind.horticulture@yahoo.com',
-    phone: '9822334455',
-    subject: 'Bulk Order of Water-Soluble Fertilizers',
-    category: 'Bulk Procurement',
-    message: 'Requesting quotation for 2 metric tons of specialty water-treatment and NPK foliar grades for our greenhouse research park near Vadodara.',
-    status: 'In Progress',
-    priority: 'Urgent',
-    date: '2026-09-27',
-    notes: 'Quotation draft prepared by agronomy team.',
-  },
-  {
-    id: 'inq-103',
-    name: 'Manish Verma',
-    email: 'manish.agri@outlook.com',
-    phone: '9711223344',
-    subject: 'Technical query regarding Emamectin Benzoate 5% SG',
-    category: 'Product Inquiry',
-    message: 'Need dosage recommendation for Diamondback Moth on late-stage cabbage and cauliflower crops in cooler weather conditions.',
-    status: 'Resolved',
-    priority: 'Normal',
-    date: '2026-09-25',
-    notes: 'Technical advisory sent via email and WhatsApp.',
-  },
-  {
-    id: 'inq-104',
-    name: 'Gaurav Kothari',
-    email: 'gkothari.agro@gmail.com',
-    phone: '9426001122',
-    subject: 'Sub-dealership inquiry in Anand & Kheda',
-    category: 'Dealership / Distribution',
-    message: 'We are an established agro-store near Anand grid. We have direct farmer reach of 1,200+ tobacco and vegetable growers. Please contact us.',
-    status: 'Pending',
-    priority: 'High',
-    date: '2026-09-29',
-    notes: '',
-  },
-];
-
 export function AdminDataProvider({ children }) {
-  // 1. PRODUCTS
-  const [products, setProducts] = useState(() => {
+  // Clear any existing localStorage data on provider initialization
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      if (saved) return JSON.parse(saved);
+      localStorage.removeItem('redberry_admin_products');
+      localStorage.removeItem('redberry_admin_sub_products');
+      localStorage.removeItem('redberry_admin_reviews');
+      localStorage.removeItem('redberry_admin_inquiries');
+      localStorage.removeItem('redberry_admin_auth_user');
     } catch (e) {
       console.error(e);
     }
-    // Default seed
+  }, []);
+
+  // 1. PRODUCTS (In-Memory state only)
+  const [products, setProducts] = useState(() => {
     return CATEGORY_PRODUCTS.map((p, idx) => ({
       id: `prod-${idx + 1}`,
       slug: p.slug,
@@ -91,92 +51,55 @@ export function AdminDataProvider({ children }) {
     }));
   });
 
-  // 2. SUB-PRODUCTS
-  const [subProducts, setSubProducts] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.SUB_PRODUCTS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    // Default seed
-    return INSECTICIDES.map((item, idx) => ({
-      id: `sub-${idx + 1}`,
-      slug: item.slug,
-      name: item.name,
-      category: item.category || 'Insecticides',
-      technicalName: item.technicalName || '',
-      formulation: item.formulation || '',
-      chemicalGroup: item.chemicalGroup || '',
-      shortDescription: item.shortDescription || '',
-      description: item.description || '',
-      targetPests: item.targetPests || '',
-      recommendedCrops: item.recommendedCrops || '',
-      dosage: item.dosage || '',
-      packagingSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
-      image: item.image || '/images/products/premium_dummy.jpg',
-      status: 'Active',
-      createdAt: '2026-08-20',
-    }));
-  });
+  // 2. SUB-PRODUCTS (Dynamic: loaded from API / CRUD actions)
+  const [subProducts, setSubProducts] = useState([]);
 
-  // 3. CUSTOMER REVIEWS
-  const [reviews, setReviews] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.REVIEWS);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return CUSTOMER_REVIEWS.map((rev) => ({
-      ...rev,
-      status: 'Approved',
-    }));
-  });
+  // 3. CUSTOMER REVIEWS (Dynamic: loaded 100% from API / CRUD actions)
+  const [reviews, setReviews] = useState([]);
 
-  // 4. INQUIRIES
-  const [inquiries, setInquiries] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.INQUIRIES);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error(e);
-    }
-    return INITIAL_INQUIRIES;
-  });
+  // 4. INQUIRIES (Dynamic: loaded from API / CRUD actions)
+  const [inquiries, setInquiries] = useState([]);
 
-  // Sync state changes to localStorage
+  // Fetch sub-products, inquiries, and reviews from backend API on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [products]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SUB_PRODUCTS, JSON.stringify(subProducts));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [subProducts]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [reviews]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.INQUIRIES, JSON.stringify(inquiries));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [inquiries]);
+    const fetchApiData = async () => {
+      try {
+        const [subProdRes, inqRes, revRes] = await Promise.all([
+          getSubProductsApi(),
+          getInquiriesApi(),
+          getReviewsApi(),
+        ]);
+        if (subProdRes.success && Array.isArray(subProdRes.data) && subProdRes.data.length > 0) {
+          setSubProducts(
+            subProdRes.data.map((item) => ({
+              ...item,
+              id: item._id || item.id,
+            }))
+          );
+        }
+        if (inqRes.success && Array.isArray(inqRes.data)) {
+          setInquiries(
+            inqRes.data.map((item) => ({
+              ...item,
+              id: item._id || item.id,
+            }))
+          );
+        }
+        if (revRes.success && Array.isArray(revRes.data) && revRes.data.length > 0) {
+          setReviews(
+            revRes.data.map((item) => ({
+              ...item,
+              id: item._id || item.id,
+              _id: item._id || item.id,
+            }))
+          );
+        }
+      } catch (e) {
+        console.warn('API data fetch fallback', e);
+      }
+    };
+    fetchApiData();
+  }, []);
 
   // --- CRUD: PRODUCT ---
   const addProduct = (item) => {
@@ -221,11 +144,43 @@ export function AdminDataProvider({ children }) {
     return products.find((p) => p.id === id || p.slug === id);
   };
 
+  // Fetch Sub-Products from Backend API on mount
+  useEffect(() => {
+    const fetchApiSubProducts = async () => {
+      try {
+        const res = await getSubProductsApi();
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const formatted = res.data.map((item) => ({
+            id: item._id || item.id,
+            _id: item._id || item.id,
+            name: item.name,
+            productId: item.productId?._id || item.productId,
+            parentProductId: item.productId?._id || item.productId,
+            parentProductName: item.parentProductName || (typeof item.productId === 'object' ? item.productId.name : 'Agro Chemicals'),
+            dosage: item.dosage || '',
+            packagingSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+            packSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes.join(', ') : item.packagingSizes,
+            shortDescription: item.shortDescription || '',
+            description: item.description || '',
+            image: item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg',
+            images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [item.image || '/images/products/premium_dummy.jpg'],
+            status: item.status || 'Active',
+            createdAt: item.createdAt ? item.createdAt.split('T')[0] : '2026-08-20',
+          }));
+          setSubProducts(formatted);
+        }
+      } catch (err) {
+        // Fallback to local default data
+      }
+    };
+    fetchApiSubProducts();
+  }, []);
+
   // --- CRUD: SUB-PRODUCT ---
-  const addSubProduct = (item) => {
+  const addSubProduct = async (item) => {
     const newSubProduct = {
       ...item,
-      id: `sub-${Date.now()}`,
+      id: item.id || `sub-${Date.now()}`,
       slug: item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       status: item.status || 'Active',
       createdAt: new Date().toISOString().split('T')[0],
@@ -236,14 +191,43 @@ export function AdminDataProvider({ children }) {
         : ['100 ml', '250 ml', '500 ml'],
     };
     setSubProducts((prev) => [newSubProduct, ...prev]);
+
+    // Backend API Sync only if not already saved to database
+    const alreadySaved = item._id || (/^[0-9a-fA-F]{24}$/.test(item.id)) || item.skipApi;
+    const apiPayload = {
+      name: item.name,
+      productId: item.parentProductId || item.productId,
+      parentProductName: item.parentProductName,
+      dosage: item.dosage,
+      packagingSizes: newSubProduct.packagingSizes,
+      shortDescription: item.shortDescription,
+      description: item.description,
+      image: item.image || (Array.isArray(item.images) && item.images[0]),
+      images: item.images || [],
+      status: item.status || 'Active',
+    };
+    if (!alreadySaved && apiPayload.productId) {
+      try {
+        const res = await createSubProductApi(apiPayload);
+        if (res.success && res.data) {
+          const serverId = res.data._id || res.data.id;
+          setSubProducts((prev) =>
+            prev.map((sp) => (sp.id === newSubProduct.id ? { ...sp, id: serverId, _id: serverId } : sp))
+          );
+        }
+      } catch (e) {
+        console.warn('API sub-product create fallback to context', e);
+      }
+    }
+
     return newSubProduct;
   };
 
-  const updateSubProduct = (id, updatedFields) => {
+  const updateSubProduct = async (id, updatedFields) => {
     let updatedItem = null;
     setSubProducts((prev) =>
       prev.map((item) => {
-        if (item.id === id || item.slug === id) {
+        if (item.id === id || item.slug === id || item._id === id) {
           const packagingSizes = Array.isArray(updatedFields.packagingSizes)
             ? updatedFields.packagingSizes
             : typeof updatedFields.packagingSizes === 'string'
@@ -255,101 +239,190 @@ export function AdminDataProvider({ children }) {
         return item;
       })
     );
+
+    // Backend API Sync if Mongo ID
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        await updateSubProductApi(id, updatedFields);
+      } catch (e) {
+        console.warn('API sub-product update fallback', e);
+      }
+    }
+
     return updatedItem;
   };
 
-  const deleteSubProduct = (id) => {
-    setSubProducts((prev) => prev.filter((p) => p.id !== id && p.slug !== id));
+  const deleteSubProduct = async (id) => {
+    setSubProducts((prev) => prev.filter((p) => p.id !== id && p.slug !== id && p._id !== id));
+
+    // Backend API Sync if Mongo ID
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        await deleteSubProductApi(id);
+      } catch (e) {
+        console.warn('API sub-product delete fallback', e);
+      }
+    }
   };
 
   const getSubProductById = (id) => {
-    return subProducts.find((p) => p.id === id || p.slug === id);
+    return subProducts.find((p) => p.id === id || p.slug === id || p._id === id);
   };
 
   // --- CRUD: CUSTOMER REVIEW ---
-  const addReview = (item) => {
-    const newReview = {
+  const addReview = async (item) => {
+    try {
+      const res = await createReviewApi(item);
+      if (res && res.success && res.data) {
+        const serverReview = {
+          ...res.data,
+          id: res.data._id || res.data.id,
+          _id: res.data._id || res.data.id,
+        };
+        setReviews((prev) => [serverReview, ...prev.filter((r) => (r._id || r.id) !== serverReview.id)]);
+        return serverReview;
+      }
+    } catch (e) {
+      console.warn('API review create fallback', e);
+    }
+
+    const fallbackReview = {
       ...item,
-      id: `rev-${Date.now()}`,
-      date: item.date || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      id: item.id || item._id || `rev-${Date.now()}`,
       rate: Number(item.rate) || 5,
-      verified: item.verified !== undefined ? Boolean(item.verified) : true,
-      status: item.status || 'Approved',
-      image: item.image || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+      image: item.image || '/images/reviews/farmer_1.png',
+      createdAt: item.createdAt || new Date().toISOString(),
     };
-    setReviews((prev) => [newReview, ...prev]);
-    return newReview;
+    setReviews((prev) => [fallbackReview, ...prev]);
+    return fallbackReview;
   };
 
-  const updateReview = (id, updatedFields) => {
+  const updateReview = async (id, updatedFields) => {
     let updatedItem = null;
+
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        const res = await updateReviewApi(id, updatedFields);
+        if (res && res.success && res.data) {
+          const serverData = {
+            ...res.data,
+            id: res.data._id || res.data.id,
+            _id: res.data._id || res.data.id,
+          };
+          setReviews((prev) =>
+            prev.map((item) => ((item.id === id || item._id === id) ? serverData : item))
+          );
+          return serverData;
+        }
+      } catch (e) {
+        console.warn('API review update fallback', e);
+      }
+    }
+
     setReviews((prev) =>
       prev.map((item) => {
-        if (item.id === id) {
+        if (item.id === id || item._id === id) {
           updatedItem = {
             ...item,
             ...updatedFields,
             rate: updatedFields.rate !== undefined ? Number(updatedFields.rate) : item.rate,
-            verified: updatedFields.verified !== undefined ? Boolean(updatedFields.verified) : item.verified,
           };
           return updatedItem;
         }
         return item;
       })
     );
+
     return updatedItem;
   };
 
-  const deleteReview = (id) => {
-    setReviews((prev) => prev.filter((r) => r.id !== id));
+  const deleteReview = async (id) => {
+    setReviews((prev) => prev.filter((r) => r.id !== id && r._id !== id));
+
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        await deleteReviewApi(id);
+      } catch (e) {
+        console.warn('API review delete fallback', e);
+      }
+    }
   };
 
   const getReviewById = (id) => {
-    return reviews.find((r) => r.id === id);
+    return reviews.find((r) => r.id === id || r._id === id);
   };
 
   // --- CRUD: INQUIRY ---
-  const addInquiry = (item) => {
+  const addInquiry = async (item) => {
     const newInquiry = {
       ...item,
-      id: `inq-${Date.now()}`,
-      date: item.date || new Date().toISOString().split('T')[0],
+      id: item.id || item._id || `inq-${Date.now()}`,
       status: item.status || 'Pending',
-      priority: item.priority || 'Normal',
-      notes: item.notes || '',
+      createdAt: item.createdAt || new Date().toISOString(),
     };
     setInquiries((prev) => [newInquiry, ...prev]);
+
+    try {
+      const res = await createInquiryApi(item);
+      if (res && res.success && res.data) {
+        const serverId = res.data._id || res.data.id;
+        setInquiries((prev) =>
+          prev.map((i) => (i.id === newInquiry.id ? { ...i, ...res.data, id: serverId, _id: serverId } : i))
+        );
+      }
+    } catch (e) {
+      console.warn('API inquiry create fallback', e);
+    }
+
     return newInquiry;
   };
 
-  const updateInquiry = (id, updatedFields) => {
+  const updateInquiry = async (id, updatedFields) => {
     let updatedItem = null;
     setInquiries((prev) =>
       prev.map((item) => {
-        if (item.id === id) {
+        if (item.id === id || item._id === id) {
           updatedItem = { ...item, ...updatedFields };
           return updatedItem;
         }
         return item;
       })
     );
+
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        await updateInquiryApi(id, updatedFields);
+      } catch (e) {
+        console.warn('API inquiry update fallback', e);
+      }
+    }
+
     return updatedItem;
   };
 
-  const deleteInquiry = (id) => {
-    setInquiries((prev) => prev.filter((i) => i.id !== id));
+  const deleteInquiry = async (id) => {
+    setInquiries((prev) => prev.filter((i) => i.id !== id && i._id !== id));
+
+    if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
+      try {
+        await deleteInquiryApi(id);
+      } catch (e) {
+        console.warn('API inquiry delete fallback', e);
+      }
+    }
   };
 
   const getInquiryById = (id) => {
-    return inquiries.find((i) => i.id === id);
+    return inquiries.find((i) => i.id === id || i._id === id);
   };
 
-  // Reset to default seed
+  // Reset to default state
   const resetAllData = () => {
-    localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
-    localStorage.removeItem(STORAGE_KEYS.SUB_PRODUCTS);
-    localStorage.removeItem(STORAGE_KEYS.REVIEWS);
-    localStorage.removeItem(STORAGE_KEYS.INQUIRIES);
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.error(e);
+    }
     window.location.reload();
   };
 

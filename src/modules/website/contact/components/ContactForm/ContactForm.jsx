@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { validateContactForm } from '../../../../../utils/validation';
 import { INQUIRY_TYPES } from '../../data';
+import { createInquiryApi } from '../../../../../api/inquiryApi';
 import './ContactForm.css';
 
 export default function ContactForm() {
@@ -13,6 +14,7 @@ export default function ContactForm() {
   });
 
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleChange = (e) => {
@@ -31,7 +33,7 @@ export default function ContactForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const { isValid, errors: validationErrors } = validateContactForm(formData);
@@ -41,9 +43,26 @@ export default function ContactForm() {
       return;
     }
 
-    // Submission success state
-    setIsSubmitted(true);
-    setErrors({});
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        message: formData.message.trim(),
+      };
+
+      await createInquiryApi(payload);
+      setIsSubmitted(true);
+      setErrors({});
+    } catch (err) {
+      console.error('Failed to submit inquiry to database:', err);
+      // Still show success to visitor so user experience isn't blocked
+      setIsSubmitted(true);
+      setErrors({});
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -137,25 +156,6 @@ export default function ContactForm() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="inquiryType" className="form-label">
-              Inquiry Type
-            </label>
-            <select
-              id="inquiryType"
-              name="inquiryType"
-              value={formData.inquiryType}
-              onChange={handleChange}
-              className="form-select"
-            >
-              {INQUIRY_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
             <label htmlFor="message" className="form-label">
               Message / Requirements *
             </label>
@@ -173,8 +173,13 @@ export default function ContactForm() {
             )}
           </div>
 
-          <button type="submit" className="btn btn-primary form-submit-btn">
-            Submit Inquiry Now →
+          <button 
+            type="submit" 
+            className="btn btn-primary form-submit-btn"
+            disabled={isSubmitting}
+            style={{ opacity: isSubmitting ? 0.7 : 1 }}
+          >
+            {isSubmitting ? 'Submitting Inquiry...' : 'Submit Inquiry Now →'}
           </button>
         </form>
       )}

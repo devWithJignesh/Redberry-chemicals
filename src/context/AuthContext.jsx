@@ -1,31 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { loginApi } from '../api/authApi';
 
 const AuthContext = createContext(null);
 
-const STORAGE_KEY = 'redberry_admin_auth_user';
-const SESSION_EXPIRY_HOURS = 24;
-
-// Registered system credentials
-export const MOCK_USERS = [
-  {
-    id: 'usr-superadmin',
-    name: 'Jignesh lakum (SuperAdmin)',
-    email: 'Jigneshlakum@gmail.com',
-    password: 'Admin@123*',
-    role: 'SuperAdmin',
-    department: 'Executive Administration',
-    avatar: '🛡️',
-  },
-  {
-    id: 'usr-standard',
-    name: 'Demo Field Officer',
-    email: 'user@redberryagri.com',
-    password: 'password123',
-    role: 'User',
-    department: 'Agronomy Support',
-    avatar: '👤',
-  },
-];
+const TOKEN_KEY = 'token';
+const USER_KEY = 'user';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -34,21 +13,23 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTime, setLockoutTime] = useState(null);
-  // Initialize session from storage on mount
+
+  // Initialize session from sessionStorage on mount & clear localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Verify session expiration
-        if (parsed.expiresAt && new Date().getTime() < parsed.expiresAt) {
-          setUser(parsed.user);
-          setToken(parsed.token);
-        } else {
-          // Session expired
-          localStorage.removeItem(STORAGE_KEY);
-          sessionStorage.removeItem(STORAGE_KEY);
-        }
+      // Clear legacy localStorage keys to ensure nothing is stored in localStorage
+      localStorage.removeItem('redberry_admin_auth_user');
+      localStorage.removeItem('redberry_admin_products');
+      localStorage.removeItem('redberry_admin_sub_products');
+      localStorage.removeItem('redberry_admin_reviews');
+      localStorage.removeItem('redberry_admin_inquiries');
+
+      const savedToken = sessionStorage.getItem(TOKEN_KEY);
+      const savedUser = sessionStorage.getItem(USER_KEY);
+
+      if (savedToken && savedUser) {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
       }
     } catch (e) {
       console.error('Session initialization error', e);
@@ -71,9 +52,9 @@ export function AuthProvider({ children }) {
   }, [lockoutTime]);
 
   /**
-   * Secure Login handler
+   * Login handler - Store token ONLY in sessionStorage
    */
-  const login = useCallback((email, password, rememberMe = true) => {
+  const login = useCallback(async (email, password) => {
     setAuthError('');
 
     // Check lockout
@@ -87,124 +68,74 @@ export function AuthProvider({ children }) {
     const trimmedEmail = (email || '').trim().toLowerCase();
     const trimmedPassword = (password || '').trim();
 
-    // 1. Mandatory field validations
-    if (!trimmedEmail && !trimmedPassword) {
+    if (!trimmedEmail || !trimmedPassword) {
       const errorMsg = 'Please enter both your email address and password.';
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
 
-    if (!trimmedEmail) {
-      const errorMsg = 'Email address is required.';
-      setAuthError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
+    try {
+      // Call backend Axios Login API (http://localhost:5000/api/auth/login)
+      const res = await loginApi({ email: trimmedEmail, password: trimmedPassword });
 
-    if (!trimmedPassword) {
-      const errorMsg = 'Password is required.';
-      setAuthError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
+      if (res.success && res.data) {
+        const apiUser = res.data;
+        const sessionToken = apiUser.token || `token-${Date.now()}`;
 
-    // 2. Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(trimmedEmail)) {
-      const errorMsg = 'Please provide a valid email format (e.g. admin@redberryagri.com).';
-      setAuthError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
+        const authUserData = {
+          id: apiUser.id || apiUser._id,
+          name: apiUser.name || 'Admin User',
+          email: apiUser.email,
+          role: 'SuperAdmin',
+          department: 'Executive Administration',
+          avatar: '🛡️',
+        };
 
-    // 3. User verification against mock store
-    let matchedUser = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === trimmedEmail && u.password === trimmedPassword
-    );
+        // Store ONLY in sessionStorage
+        sessionStorage.setItem(TOKEN_KEY, sessionToken);
+        sessionStorage.setItem(USER_KEY, JSON.stringify(authUserData));
 
-    // Also support convenience alias: admin@redberry.com
-    if (!matchedUser && trimmedEmail === 'admin@redberry.com' && trimmedPassword === 'password123') {
-      matchedUser = {
-        id: 'usr-admin-alias',
-        name: 'Redberry SuperAdmin',
-        email: 'admin@redberry.com',
-        password: 'password123',
-        role: 'SuperAdmin',
-        department: 'Executive Administration',
-        avatar: '🛡️',
-      };
-    }
+        // Ensure localStorage is clean
+        localStorage.removeItem('redberry_admin_auth_user');
 
-    if (!matchedUser) {
+        setUser(authUserData);
+        setToken(sessionToken);
+        setFailedAttempts(0);
+        setLockoutTime(null);
+        setAuthError('');
+
+        return { success: true, user: authUserData, token: sessionToken };
+      } else {
+        throw new Error(res.message || 'Login failed');
+      }
+    } catch (error) {
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
 
+      let errorMsg = error.message || 'Invalid email or password';
+
       if (newAttempts >= 5) {
-        const lockUntil = new Date().getTime() + 30 * 1000; // 30s lockout
+        const lockUntil = new Date().getTime() + 30 * 1000;
         setLockoutTime(lockUntil);
-        const lockMsg = 'Security Alert: 5 invalid login attempts. Locked for 30 seconds.';
-        setAuthError(lockMsg);
-        return { success: false, error: lockMsg };
+        errorMsg = 'Security Alert: 5 invalid login attempts. Locked for 30 seconds.';
       }
 
-      const attemptsLeft = 5 - newAttempts;
-      const errorMsg = `Invalid credentials. Please verify your email and password. (${attemptsLeft} attempts remaining)`;
       setAuthError(errorMsg);
       return { success: false, error: errorMsg };
     }
-
-    // 4. Role Authorization check (SuperAdmin only)
-    if (matchedUser.role !== 'SuperAdmin') {
-      const errorMsg = `Access Restricted: Account "${matchedUser.name}" has role "${matchedUser.role}". Only SuperAdmin accounts are authorized to access this administration console.`;
-      setAuthError(errorMsg);
-      return { success: false, error: errorMsg };
-    }
-
-    // 5. Successful authentication
-    const sessionToken = `rb-sec-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const expiresAt = new Date().getTime() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000;
-
-    const authUserData = {
-      id: matchedUser.id,
-      name: matchedUser.name,
-      email: matchedUser.email,
-      role: matchedUser.role,
-      department: matchedUser.department || 'Executive Administration',
-      avatar: matchedUser.avatar,
-    };
-
-    const sessionData = {
-      user: authUserData,
-      token: sessionToken,
-      expiresAt,
-    };
-
-    try {
-      if (rememberMe) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
-      } else {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionData));
-      }
-    } catch (e) {
-      console.warn('Storage sync issue', e);
-    }
-
-    setUser(authUserData);
-    setToken(sessionToken);
-    setFailedAttempts(0);
-    setLockoutTime(null);
-    setAuthError('');
-
-    return { success: true, user: authUserData, token: sessionToken };
   }, [failedAttempts, lockoutTime]);
 
   /**
-   * Secure Logout
+   * Logout - Clear sessionStorage
    */
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
     setAuthError('');
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(USER_KEY);
+      localStorage.clear();
     } catch (e) {
       console.error('Logout cleanup error', e);
     }
