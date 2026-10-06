@@ -360,11 +360,7 @@ export default function SingleProductDetails() {
 
   if (isLoading) {
     return (
-      <PageSpinner
-        title="Loading Product Details..."
-        subtitle="Fetching specifications and formulation data"
-        fullPage={true}
-      />
+      <PageSpinner fullPage={true} />
     );
   }
 

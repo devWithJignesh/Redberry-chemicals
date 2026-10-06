@@ -216,11 +216,7 @@ export function ProductGrid({ categories = [], activeFilter, onFilterChange }) {
 
         {/* Products Grid / Loading / Empty State */}
         {isLoading ? (
-          <PageSpinner
-            title="Loading Products..."
-            subtitle="Fetching catalog formulations and active ingredients"
-            fullPage={false}
-          />
+          <PageSpinner fullPage={false} />
         ) : products.length > 0 ? (
           <>
             <div className="pg-products-grid">

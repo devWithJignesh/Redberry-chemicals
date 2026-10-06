@@ -31,11 +31,7 @@ export function LoadingProvider({ children }) {
     <LoadingContext.Provider value={{ isLoading, showLoader, hideLoader }}>
       {children}
       {isLoading && (
-        <PageSpinner
-          title="Redberry Engine"
-          subtitle={loaderMessage}
-          fullPage={true}
-        />
+        <PageSpinner fullPage={true} />
       )}
     </LoadingContext.Provider>
   );
