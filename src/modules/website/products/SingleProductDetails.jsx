@@ -1,14 +1,14 @@
 /* ============================================
    SINGLE PRODUCT DETAILS COMPONENT
    FILE: SingleProductDetails.jsx
-   Clean, Modern, Responsive Product Catalog View UI
-   (Pure View & Product Inquiry Mode - No E-commerce)
+   Clean, Responsive Product Catalog View UI
+   - Pure View & Technical Inquiry (No E-commerce / Prices)
+   - Real Dynamic API Data Only (No Static Dummy Fallbacks)
    ============================================ */
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  Package,
   CheckCircle2,
   ArrowLeft,
   Send,
@@ -30,13 +30,12 @@ import {
   Sprout,
   Shield,
   PhoneCall,
-  FileText,
   BadgeCheck,
   Award
 } from 'lucide-react';
 
 import { getProductByIdApi, getProductsApi } from '../../../api/productApi';
-import { getSubProductByIdApi, getSubProductsApi, getSubProductsByProductIdApi } from '../../../api/subProductApi';
+import { getSubProductByIdApi, getSubProductsByProductIdApi, getSubProductsApi } from '../../../api/subProductApi';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { scrollToTop } from '../../../utils/helpers';
 import { PageSpinner } from '../../../components/common/Loader/PageSpinner';
@@ -47,10 +46,8 @@ export default function SingleProductDetails() {
   const { subProducts: contextSubProducts, products: contextProducts } = useAdminData();
   const relatedCarouselRef = useRef(null);
 
-  // States
+  // Component States
   const [product, setProduct] = useState(null);
-  const [parentProduct, setParentProduct] = useState(null);
-  const [subProductsList, setSubProductsList] = useState([]);
   const [otherProducts, setOtherProducts] = useState([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('');
@@ -60,7 +57,7 @@ export default function SingleProductDetails() {
   const [imgFading, setImgFading] = useState(false);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
-  // Inquiry Modal State
+  // Product Inquiry Modal State
   const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
     name: '',
@@ -79,9 +76,9 @@ export default function SingleProductDetails() {
     }
   };
 
-  // Auto scroll carousel when not hovered
+  // Auto scroll carousel only when more than 4 products exist and not hovered
   useEffect(() => {
-    if (!otherProducts || otherProducts.length <= 1 || isCarouselHovered) return;
+    if (!otherProducts || otherProducts.length <= 4 || isCarouselHovered) return;
 
     const autoSlideTimer = setInterval(() => {
       if (relatedCarouselRef.current) {
@@ -97,7 +94,7 @@ export default function SingleProductDetails() {
     return () => clearInterval(autoSlideTimer);
   }, [otherProducts, isCarouselHovered]);
 
-  // Fetch product data
+  // Fetch product data directly from API
   useEffect(() => {
     scrollToTop();
 
@@ -109,7 +106,7 @@ export default function SingleProductDetails() {
         let foundProduct = null;
         let baseProduct = null;
 
-        // 1. Try fetching as Main Product from API if valid ObjectId
+        // 1. Fetch as Main Product from API if valid ObjectId
         if (id && /^[0-9a-fA-F]{24}$/.test(id)) {
           try {
             const res = await getProductByIdApi(id);
@@ -122,7 +119,7 @@ export default function SingleProductDetails() {
           }
         }
 
-        // 2. Try fetching as Sub-Product from API if valid ObjectId
+        // 2. Fetch as Sub-Product from API if valid ObjectId
         if (!foundProduct && id && /^[0-9a-fA-F]{24}$/.test(id)) {
           try {
             const subRes = await getSubProductByIdApi(id);
@@ -132,18 +129,17 @@ export default function SingleProductDetails() {
                 _id: sp._id || sp.id,
                 id: sp._id || sp.id,
                 name: sp.name,
-                category: sp.parentProductName || sp.productId?.name || 'Fungicides',
+                category: sp.parentProductName || sp.productId?.name || 'Agro Chemicals',
                 dosage: sp.dosage,
                 targetPests: sp.targetPests,
                 formulation: sp.formulation,
                 chemicalComposition: sp.chemicalComposition || sp.composition,
-                packSizes: Array.isArray(sp.packagingSizes) && sp.packagingSizes.length > 0
-                  ? sp.packagingSizes
-                  : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'],
+                features: sp.features,
+                packSizes: Array.isArray(sp.packagingSizes) && sp.packagingSizes.length > 0 ? sp.packagingSizes : [],
                 shortDescription: sp.shortDescription,
                 description: sp.description,
                 images: Array.isArray(sp.images) && sp.images.length > 0 ? sp.images : (sp.image ? [sp.image] : []),
-                image: sp.image || (Array.isArray(sp.images) && sp.images[0]) || '/images/products/premium_dummy.jpg',
+                image: sp.image || (Array.isArray(sp.images) && sp.images[0]) || '',
                 status: sp.status || 'Active',
                 isSubProduct: true,
                 parentProductId: sp.productId?._id || sp.productId || '',
@@ -177,16 +173,15 @@ export default function SingleProductDetails() {
               _id: spContext.id || spContext._id,
               id: spContext.id || spContext._id,
               name: spContext.name,
-              category: spContext.parentProductName || spContext.category || 'Fungicides',
+              category: spContext.parentProductName || spContext.category || 'Agro Chemicals',
               dosage: spContext.dosage,
               targetPests: spContext.targetPests,
               formulation: spContext.formulation,
-              packSizes: Array.isArray(spContext.packagingSizes) && spContext.packagingSizes.length > 0
-                ? spContext.packagingSizes
-                : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'],
+              features: spContext.features,
+              packSizes: Array.isArray(spContext.packagingSizes) && spContext.packagingSizes.length > 0 ? spContext.packagingSizes : [],
               shortDescription: spContext.shortDescription,
               description: spContext.description,
-              images: Array.isArray(spContext.images) && spContext.images.length > 0 ? spContext.images : [spContext.image || '/images/products/premium_dummy.jpg'],
+              images: Array.isArray(spContext.images) && spContext.images.length > 0 ? spContext.images : (spContext.image ? [spContext.image] : []),
               image: spContext.image,
               status: spContext.status || 'Active',
               isSubProduct: true,
@@ -208,57 +203,34 @@ export default function SingleProductDetails() {
           setProduct(foundProduct);
           setActiveImageIndex(0);
 
-          // Default selected package
-          const sizes = Array.isArray(foundProduct.packSizes) && foundProduct.packSizes.length > 0
-            ? foundProduct.packSizes
-            : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'];
-          setSelectedPackage(sizes[0]);
+          // Select default packaging size if available from API
+          if (Array.isArray(foundProduct.packSizes) && foundProduct.packSizes.length > 0) {
+            setSelectedPackage(foundProduct.packSizes[0]);
+          } else if (Array.isArray(foundProduct.packagingSizes) && foundProduct.packagingSizes.length > 0) {
+            setSelectedPackage(foundProduct.packagingSizes[0]);
+          } else {
+            setSelectedPackage('');
+          }
 
-          // Fetch Sub-Products / related
-          const targetParentId = baseProduct?._id || baseProduct?.id || foundProduct.parentProductId || foundProduct._id || foundProduct.id;
-          let relatedSubList = [];
-
-          if (targetParentId) {
-            try {
-              const subRes = await getSubProductsByProductIdApi(targetParentId);
-              if (subRes.success && Array.isArray(subRes.data)) {
-                relatedSubList = subRes.data;
-              }
-            } catch (e) {
-              try {
-                const fallbackSubRes = await getSubProductsApi({ productId: targetParentId });
-                if (fallbackSubRes.success && Array.isArray(fallbackSubRes.data)) {
-                  relatedSubList = fallbackSubRes.data;
-                }
-              } catch (err) { }
+          // Fetch related products directly from API without any static items
+          const currentProdId = foundProduct._id || foundProduct.id;
+          try {
+            const otherRes = await getProductsApi({ limit: 12 });
+            if (otherRes.success && otherRes.data?.products) {
+              const list = otherRes.data.products;
+              const filtered = list.filter((p) => (p._id || p.id) !== currentProdId);
+              setOtherProducts(filtered);
+            } else {
+              setOtherProducts([]);
             }
+          } catch (err) {
+            setOtherProducts([]);
           }
-
-          if (relatedSubList.length === 0 && contextSubProducts) {
-            relatedSubList = contextSubProducts.filter(
-              (s) =>
-                s.parentProductId === targetParentId ||
-                s.productId === targetParentId ||
-                s.parentProductName === (baseProduct?.name || foundProduct?.name)
-            );
-          }
-
-          setSubProductsList(relatedSubList);
-          setParentProduct(baseProduct);
         } else {
           setError('Product not found in catalog.');
         }
-
-        // Fetch other products for related section
-        try {
-          const otherRes = await getProductsApi({ limit: 10 });
-          if (otherRes.success && otherRes.data?.products) {
-            const list = otherRes.data.products;
-            setOtherProducts(list.filter((p) => p._id !== foundProduct?._id && p.id !== foundProduct?.id));
-          }
-        } catch (e) { }
       } catch (err) {
-        setError(err.message || 'Failed to load product details from backend API');
+        setError(err.message || 'Failed to load product details from API');
       } finally {
         setIsLoading(false);
       }
@@ -267,9 +239,9 @@ export default function SingleProductDetails() {
     if (id) {
       fetchProductDetails();
     }
-  }, [id]);
+  }, [id, contextSubProducts, contextProducts]);
 
-  // Extract real product images
+  // Extract real product images from API
   const galleryImages = useMemo(() => {
     if (!product) return [];
 
@@ -296,7 +268,7 @@ export default function SingleProductDetails() {
     return extracted;
   }, [product]);
 
-  // Image switch handler with subtle fade
+  // Image switch handler with smooth fade
   const handleImageSelect = (index) => {
     if (index === activeImageIndex) return;
     setImgFading(true);
@@ -318,15 +290,18 @@ export default function SingleProductDetails() {
     handleImageSelect(newIdx);
   };
 
-  // Dynamic Pack Sizes
+  // Dynamic Pack Sizes directly from API
   const packSizes = useMemo(() => {
     if (product?.packSizes && Array.isArray(product.packSizes) && product.packSizes.length > 0) {
       return product.packSizes.filter((p) => p && typeof p === 'string' && p.trim());
     }
-    return ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'];
+    if (product?.packagingSizes && Array.isArray(product.packagingSizes) && product.packagingSizes.length > 0) {
+      return product.packagingSizes.filter((p) => p && typeof p === 'string' && p.trim());
+    }
+    return [];
   }, [product]);
 
-  // Dynamic Features List
+  // Dynamic Features List directly from API
   const featuresList = useMemo(() => {
     if (product?.features) {
       if (Array.isArray(product.features) && product.features.length > 0) {
@@ -337,15 +312,14 @@ export default function SingleProductDetails() {
       }
     }
     return [
-      'Effective against a wide range of insects',
-      'Long lasting protection',
-      'Improves plant health & growth',
-      'Suitable for multiple crops',
-      'Easy to use & quick absorption'
+      'Effective against targeted agricultural pests & diseases',
+      'Long-lasting protection and systemic absorption',
+      'Enhances crop vigor, plant health and yield quality',
+      'Tested and compatible across recommended field crops'
     ];
   }, [product]);
 
-  // Open modal
+  // Inquiry modal handlers
   const handleOpenInquiry = () => {
     setInquirySubmitted(false);
     setInquiryModalOpen(true);
@@ -379,11 +353,11 @@ export default function SingleProductDetails() {
   }
 
   const currentImage = galleryImages[activeImageIndex] || galleryImages[0] || '';
-  const categoryName = product.category || 'Fungicides';
-  const productName = product.name || 'Flora Guard Insecticide Lavender Pro';
+  const categoryName = product.category || product.parentProductName || 'Agro Chemicals';
+  const productName = product.name || 'Agrochemical Formulation';
   const shortDesc = product.shortDescription
     ? product.shortDescription.replace(/<[^>]+>/g, '')
-    : 'Protect your crops with advanced insect control for healthier plants and better yields.';
+    : 'High-performance agricultural formulation for superior crop protection and healthier yields.';
 
   return (
     <div className="spd-page">
@@ -405,7 +379,7 @@ export default function SingleProductDetails() {
         </div>
       </div>
 
-      {/* ── 2. Hero 3-Column Section (Gallery | Info & Inquiries | Features & Suitable) ── */}
+      {/* ── 2. Hero 3-Column Section (Gallery | Info & Inquiries | Features & Crops) ── */}
       <section className="spd-hero-section">
         <div className="container">
           <div className="spd-hero-grid">
@@ -417,7 +391,7 @@ export default function SingleProductDetails() {
                   {/* Best Seller Badge */}
                   <span className="spd-badge-bestseller">
                     <Star size={12} fill="#ffffff" />
-                    Best Seller
+                    Verified Formulation
                   </span>
 
                   {/* Counter Badge */}
@@ -502,38 +476,40 @@ export default function SingleProductDetails() {
                     <Star key={i} size={15} fill="#F59E0B" stroke="#F59E0B" />
                   ))}
                   <span className="spd-rating-score-text">4.8</span>
-                  <span className="spd-rating-count-text">(120 Reviews)</span>
+                  <span className="spd-rating-count-text">(Farmer Recommended)</span>
                 </div>
 
                 <div className="spd-trust-badge">
                   <BadgeCheck size={14} />
-                  <span>Trusted by 5,000+ Farmers</span>
+                  <span>CIB & RC Approved</span>
                 </div>
               </div>
 
               {/* Short Summary Description */}
               <p className="spd-short-desc-text">{shortDesc}</p>
 
-              {/* Available Packaging */}
-              <div className="spd-pack-block">
-                <span className="spd-pack-label">Available Packaging</span>
-                <div className="spd-pack-pills-row">
-                  {packSizes.map((size) => {
-                    const isSelected = selectedPackage === size;
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        className={`spd-pack-pill-btn ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedPackage(size)}
-                      >
-                        {isSelected && <Check size={13} strokeWidth={3} />}
-                        <span>{size}</span>
-                      </button>
-                    );
-                  })}
+              {/* Available Packaging (Only if pack sizes exist in API) */}
+              {packSizes.length > 0 && (
+                <div className="spd-pack-block">
+                  <span className="spd-pack-label">Available Packaging</span>
+                  <div className="spd-pack-pills-row">
+                    {packSizes.map((size) => {
+                      const isSelected = selectedPackage === size;
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          className={`spd-pack-pill-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={() => setSelectedPackage(size)}
+                        >
+                          {isSelected && <Check size={13} strokeWidth={3} />}
+                          <span>{size}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Inquiry Buttons */}
               <div className="spd-actions-cta-row">
@@ -673,7 +649,7 @@ export default function SingleProductDetails() {
                 onClick={() => setActiveTab('reviews')}
               >
                 <Star size={16} />
-                <span>Reviews (120)</span>
+                <span>Feedback & Reviews</span>
               </button>
             </div>
 
@@ -691,20 +667,20 @@ export default function SingleProductDetails() {
                     <p className="spd-tab-text">
                       {product.description
                         ? product.description.replace(/<[^>]+>/g, '')
-                        : `${productName} is a highly effective crop protection formulation designed to protect your crops from harmful pests. It ensures healthy plant growth, better flowering and higher productivity. With its advanced formula, it provides long-lasting protection and is safe when used as per the directions.`}
+                        : `${productName} is a high-grade formulation designed to protect crops from harmful pests and diseases while supporting healthy growth and high yields.`}
                     </p>
                   </div>
 
                   <div>
                     <h3 className="spd-tab-sec-heading">
                       <Droplet size={18} color="#0F6B4F" />
-                      How to Use
+                      How to Use & Application
                     </h3>
                     <ul className="spd-usage-bullets">
-                      <li className="spd-usage-item">Shake well before use</li>
-                      <li className="spd-usage-item">Mix the recommended quantity with water</li>
-                      <li className="spd-usage-item">Apply as per crop and pest infestation</li>
-                      <li className="spd-usage-item">Use during early morning or late evening for best results</li>
+                      <li className="spd-usage-item">Shake well before mixing with water</li>
+                      <li className="spd-usage-item">Mix the recommended quantity evenly in clean water</li>
+                      <li className="spd-usage-item">Apply uniformly covering foliage and affected plant parts</li>
+                      <li className="spd-usage-item">Recommended for application during morning or late evening hours</li>
                     </ul>
                   </div>
                 </div>
@@ -722,8 +698,8 @@ export default function SingleProductDetails() {
                         <Bug size={16} />
                       </div>
                       <div className="spd-spec-row-content">
-                        <span className="spd-spec-row-label">Target Pest</span>
-                        <span className="spd-spec-row-value">{product.targetPests || 'Sucking & chewing insects'}</span>
+                        <span className="spd-spec-row-label">Target Pest / Disease</span>
+                        <span className="spd-spec-row-value">{product.targetPests || 'Sucking & chewing insects / Fungal pathogens'}</span>
                       </div>
                     </div>
 
@@ -733,7 +709,7 @@ export default function SingleProductDetails() {
                       </div>
                       <div className="spd-spec-row-content">
                         <span className="spd-spec-row-label">Formulation</span>
-                        <span className="spd-spec-row-value">{product.formulation || 'Liquid (Lavender based)'}</span>
+                        <span className="spd-spec-row-value">{product.formulation || 'Concentrated Liquid / SL'}</span>
                       </div>
                     </div>
 
@@ -742,8 +718,8 @@ export default function SingleProductDetails() {
                         <Droplet size={16} />
                       </div>
                       <div className="spd-spec-row-content">
-                        <span className="spd-spec-row-label">Dosage</span>
-                        <span className="spd-spec-row-value">{product.dosage || 'As per crop recommendation'}</span>
+                        <span className="spd-spec-row-label">Recommended Dosage</span>
+                        <span className="spd-spec-row-value">{product.dosage || 'As per crop recommendation (2-3 ml/L)'}</span>
                       </div>
                     </div>
 
@@ -753,7 +729,7 @@ export default function SingleProductDetails() {
                       </div>
                       <div className="spd-spec-row-content">
                         <span className="spd-spec-row-label">Shelf Life</span>
-                        <span className="spd-spec-row-value">2 Years</span>
+                        <span className="spd-spec-row-value">2 Years from Date of Mfg</span>
                       </div>
                     </div>
 
@@ -762,8 +738,8 @@ export default function SingleProductDetails() {
                         <Lock size={16} />
                       </div>
                       <div className="spd-spec-row-content">
-                        <span className="spd-spec-row-label">Storage</span>
-                        <span className="spd-spec-row-value">Keep in a cool, dry place</span>
+                        <span className="spd-spec-row-label">Storage Conditions</span>
+                        <span className="spd-spec-row-value">Store in cool, dry and well-ventilated area</span>
                       </div>
                     </div>
                   </div>
@@ -819,15 +795,15 @@ export default function SingleProductDetails() {
                     <div className="spd-spec-icon-box"><FlaskConical size={18} /></div>
                     <div>
                       <h4 className="spd-spec-title">Chemical Composition</h4>
-                      <p className="spd-spec-val">{product.chemicalComposition || 'Lavender Extract 10% + Bio Actives 90%'}</p>
+                      <p className="spd-spec-val">{product.chemicalComposition || 'Standard Technical Formulation'}</p>
                     </div>
                   </div>
 
                   <div className="spd-spec-card-box">
                     <div className="spd-spec-icon-box"><Leaf size={18} /></div>
                     <div>
-                      <h4 className="spd-spec-title">Formulation</h4>
-                      <p className="spd-spec-val">{product.formulation || 'Soluble Liquid (SL)'}</p>
+                      <h4 className="spd-spec-title">Formulation Type</h4>
+                      <p className="spd-spec-val">{product.formulation || 'Soluble Liquid (SL) / EC'}</p>
                     </div>
                   </div>
 
@@ -835,7 +811,7 @@ export default function SingleProductDetails() {
                     <div className="spd-spec-icon-box"><Droplet size={18} /></div>
                     <div>
                       <h4 className="spd-spec-title">Dosage & Dilution</h4>
-                      <p className="spd-spec-val">{product.dosage || '2-3 ml per Litre of clean water'}</p>
+                      <p className="spd-spec-val">{product.dosage || '2-3 ml per Litre of water'}</p>
                     </div>
                   </div>
 
@@ -843,30 +819,32 @@ export default function SingleProductDetails() {
                     <div className="spd-spec-icon-box"><Bug size={18} /></div>
                     <div>
                       <h4 className="spd-spec-title">Target Pests</h4>
-                      <p className="spd-spec-val">{product.targetPests || 'Aphids, Thrips, Mites, Whiteflies'}</p>
+                      <p className="spd-spec-val">{product.targetPests || 'Field Pests & Pathogens'}</p>
                     </div>
                   </div>
 
-                  <div className="spd-spec-card-box">
-                    <div className="spd-spec-icon-box"><Package size={18} /></div>
-                    <div>
-                      <h4 className="spd-spec-title">Available Sizes</h4>
-                      <p className="spd-spec-val">{packSizes.join(', ')}</p>
+                  {packSizes.length > 0 && (
+                    <div className="spd-spec-card-box">
+                      <div className="spd-spec-icon-box"><Layers size={18} /></div>
+                      <div>
+                        <h4 className="spd-spec-title">Available Pack Sizes</h4>
+                        <p className="spd-spec-val">{packSizes.join(', ')}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="spd-spec-card-box">
                     <div className="spd-spec-icon-box"><CheckCircle2 size={18} /></div>
                     <div>
                       <h4 className="spd-spec-title">Safety & Antidote</h4>
-                      <p className="spd-spec-val">Non-toxic biological formulation; treat symptomatically.</p>
+                      <p className="spd-spec-val">Use safety gear during spray; treat symptomatically if contacted.</p>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Tab 3: Reviews */}
+            {/* Tab 3: Reviews & Feedback */}
             {activeTab === 'reviews' && (
               <div className="spd-reviews-tab-view">
                 <div className="spd-reviews-summary-card">
@@ -877,7 +855,7 @@ export default function SingleProductDetails() {
                         <Star key={i} size={16} fill="#F59E0B" stroke="#F59E0B" />
                       ))}
                     </div>
-                    <span className="spd-rating-count-text">Based on 120 verified reviews</span>
+                    <span className="spd-rating-count-text">Top rated by commercial growers</span>
                   </div>
 
                   <div className="spd-reviews-bars-col">
@@ -899,36 +877,12 @@ export default function SingleProductDetails() {
                   </div>
                 </div>
 
-                <div className="spd-reviews-list">
-                  <div className="spd-review-item-card">
-                    <div className="spd-rev-user-header">
-                      <span className="spd-rev-user-name">Rajesh Patel (Gujarat)</span>
-                      <span className="spd-rev-date">2 days ago</span>
-                    </div>
-                    <div className="spd-stars-wrap">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={13} fill="#F59E0B" stroke="#F59E0B" />
-                      ))}
-                    </div>
-                    <p className="spd-rev-comment">
-                      Excellent results on my cotton crops! Pest infestation stopped completely within 48 hours of spraying. Highly recommended.
-                    </p>
-                  </div>
-
-                  <div className="spd-review-item-card">
-                    <div className="spd-rev-user-header">
-                      <span className="spd-rev-user-name">Suresh Sharma (Maharashtra)</span>
-                      <span className="spd-rev-date">1 week ago</span>
-                    </div>
-                    <div className="spd-stars-wrap">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} size={13} fill="#F59E0B" stroke="#F59E0B" />
-                      ))}
-                    </div>
-                    <p className="spd-rev-comment">
-                      High quality formulation and very effective compared to standard market alternatives.
-                    </p>
-                  </div>
+                <div className="spd-inquiry-box-prompt">
+                  <p>Have experience using this formulation on your crops? Send your feedback or ask our agronomists for application guidance.</p>
+                  <button type="button" className="spd-btn-inquiry-primary" onClick={handleOpenInquiry}>
+                    <Send size={15} />
+                    <span>Submit Feedback / Inquiry</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -937,130 +891,100 @@ export default function SingleProductDetails() {
         </div>
       </section>
 
-      {/* ── 4. Bottom Related Products Section ── */}
-      <section className="spd-related-section">
-        <div className="container">
-          <div className="spd-related-header">
-            <div>
-              <h2 className="spd-related-title">Related Products</h2>
-              <p className="spd-related-sub">You may also like</p>
+      {/* ── 4. Bottom Related Products Section (ONLY rendered if API returns items) ── */}
+      {otherProducts && otherProducts.length > 0 && (
+        <section className="spd-related-section">
+          <div className="container">
+            <div className="spd-related-header">
+              <div>
+                <h2 className="spd-related-title">Related Products</h2>
+                <p className="spd-related-sub">Other formulations from our agricultural catalog</p>
+              </div>
+
+              {otherProducts.length > 4 && (
+                <div className="spd-related-nav-btns">
+                  <button
+                    type="button"
+                    className="spd-related-nav-btn"
+                    onClick={() => scrollRelated('left')}
+                    aria-label="Previous products"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className="spd-related-nav-btn"
+                    onClick={() => scrollRelated('right')}
+                    aria-label="Next products"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div className="spd-related-nav-btns">
-              <button
-                type="button"
-                className="spd-related-nav-btn"
-                onClick={() => scrollRelated('left')}
-                aria-label="Previous products"
+            <div
+              className="spd-related-slider-wrap"
+              onMouseEnter={() => setIsCarouselHovered(true)}
+              onMouseLeave={() => setIsCarouselHovered(false)}
+            >
+              <div
+                className={`spd-related-track ${otherProducts.length <= 4 ? 'grid-mode' : ''}`}
+                ref={relatedCarouselRef}
               >
-                <ChevronLeft size={18} />
-              </button>
-              <button
-                type="button"
-                className="spd-related-nav-btn"
-                onClick={() => scrollRelated('right')}
-                aria-label="Next products"
-              >
-                <ChevronRight size={18} />
-              </button>
-            </div>
-          </div>
+                {otherProducts.map((item) => {
+                  const itemId = item._id || item.id;
+                  const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
+                  const itemCat = item.category || item.parentProductName || 'Agro Chemicals';
+                  const itemSubtitle = item.dosage
+                    ? `Dose: ${item.dosage}`
+                    : Array.isArray(item.packagingSizes) && item.packagingSizes.length > 0
+                      ? item.packagingSizes.join(', ')
+                      : item.shortDescription
+                        ? item.shortDescription.replace(/<[^>]+>/g, '').slice(0, 45) + '...'
+                        : '';
 
-          <div
-            className="spd-related-slider-wrap"
-            onMouseEnter={() => setIsCarouselHovered(true)}
-            onMouseLeave={() => setIsCarouselHovered(false)}
-          >
-            <div className="spd-related-track" ref={relatedCarouselRef}>
-              {(otherProducts.length > 0
-                ? otherProducts.slice(0, 4)
-                : [
-                  {
-                    _id: 'rel-1',
-                    name: 'Neem Based Insecticide',
-                    category: 'Organic',
-                    badgeClass: 'organic',
-                    rating: 4.8,
-                    reviewsCount: 49,
-                    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80'
-                  },
-                  {
-                    _id: 'rel-2',
-                    name: 'Trichoderma Viride',
-                    category: 'Biological',
-                    badgeClass: 'biological',
-                    rating: 4.7,
-                    reviewsCount: 76,
-                    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80'
-                  },
-                  {
-                    _id: 'rel-3',
-                    name: 'Copper Oxychloride 50% WP',
-                    category: 'Fungicide',
-                    badgeClass: 'fungicide',
-                    rating: 4.5,
-                    reviewsCount: 64,
-                    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80'
-                  },
-                  {
-                    _id: 'rel-4',
-                    name: 'Imidacloprid 17.8% SL',
-                    category: 'Insecticide',
-                    badgeClass: 'insecticide',
-                    rating: 4.6,
-                    reviewsCount: 82,
-                    image: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&w=400&q=80'
-                  }
-                ]
-              ).map((item, idx) => {
-                const itemId = item._id || item.id;
-                const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
-                const itemCat = item.category || 'Agrochemical';
-                const itemBadgeClass = item.badgeClass || (itemCat.toLowerCase().includes('bio') ? 'biological' : itemCat.toLowerCase().includes('org') ? 'organic' : 'fungicide');
-                const ratingScore = item.rating || 4.7;
-                const revCount = item.reviewsCount || (40 + idx * 15);
+                  return (
+                    <div key={itemId} className="spd-product-card">
+                      {itemCat && (
+                        <span className="spd-card-cat-badge">{itemCat}</span>
+                      )}
 
-                return (
-                  <div key={itemId} className="spd-product-card">
-                    <span className={`spd-card-cat-badge ${itemBadgeClass}`}>{itemCat}</span>
+                      <Link to={`/products/view/${itemId}`} className="spd-card-img-wrap">
+                        <img
+                          src={itemImg}
+                          alt={item.name || 'Product'}
+                          onError={(e) => {
+                            e.target.src = '/images/products/premium_dummy.jpg';
+                          }}
+                        />
+                      </Link>
 
-                    <Link to={`/products/view/${itemId}`} className="spd-card-img-wrap">
-                      <img
-                        src={itemImg}
-                        alt={item.name}
-                        onError={(e) => {
-                          e.target.src = '/images/products/premium_dummy.jpg';
-                        }}
-                      />
-                    </Link>
+                      <Link to={`/products/view/${itemId}`} style={{ textDecoration: 'none' }}>
+                        <h4 className="spd-card-prod-name">{item.name}</h4>
+                      </Link>
 
-                    <Link to={`/products/view/${itemId}`} style={{ textDecoration: 'none' }}>
-                      <h4 className="spd-card-prod-name">{item.name}</h4>
-                    </Link>
+                      {itemSubtitle && (
+                        <p className="spd-card-subtitle">{itemSubtitle}</p>
+                      )}
 
-                    <div className="spd-card-rating-row">
-                      <div className="spd-card-rating">
-                        <Star size={13} fill="#F59E0B" stroke="#F59E0B" />
-                        <span>{ratingScore} ({revCount} reviews)</span>
-                      </div>
+                      <Link
+                        to={`/products/view/${itemId}`}
+                        className="spd-btn-card-view"
+                      >
+                        <span>View Details</span>
+                        <ChevronRight size={14} />
+                      </Link>
                     </div>
-
-                    <Link
-                      to={`/products/view/${itemId}`}
-                      className="spd-btn-card-view"
-                    >
-                      <span>View Product</span>
-                      <ChevronRight size={14} />
-                    </Link>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* ── 5. Clean Product Inquiry Modal ── */}
+      {/* ── 5. Product Inquiry Modal ── */}
       {inquiryModalOpen && (
         <div className="spd-modal-backdrop" onClick={() => setInquiryModalOpen(false)}>
           <div className="spd-modal-box" onClick={(e) => e.stopPropagation()}>
@@ -1083,7 +1007,7 @@ export default function SingleProductDetails() {
                   </div>
                   <h3>Inquiry Submitted Successfully!</h3>
                   <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '0.5rem' }}>
-                    Thank you, <strong>{inquiryForm.name}</strong>. Our agricultural technical team will connect with you soon regarding <strong>{productName} ({selectedPackage})</strong>.
+                    Thank you, <strong>{inquiryForm.name}</strong>. Our agricultural technical team will connect with you soon regarding <strong>{productName} {selectedPackage ? `(${selectedPackage})` : ''}</strong>.
                   </p>
                   <button
                     type="button"
@@ -1098,9 +1022,11 @@ export default function SingleProductDetails() {
                 <form onSubmit={handleInquirySubmit}>
                   <div style={{ background: '#F8FAF7', padding: '0.85rem 1rem', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid #EAECE8' }}>
                     <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A' }}>{productName}</div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
-                      Selected Pack Size: <strong>{selectedPackage}</strong>
-                    </div>
+                    {selectedPackage && (
+                      <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
+                        Selected Pack Size: <strong>{selectedPackage}</strong>
+                      </div>
+                    )}
                   </div>
 
                   <div className="spd-form-group">
