@@ -1,7 +1,7 @@
 /* ============================================
    SINGLE PRODUCT DETAILS - COMPREHENSIVE UI
    FILE: SingleProductDetails.css
-   Matches Reference E-commerce / Catalog UI
+   Clean Product View & Inquiry Design (No E-commerce)
    ============================================ */
 
 .spd-page {
@@ -226,7 +226,7 @@
   font-weight: 700;
 }
 
-/* ── Center Column: Info & Actions ── */
+/* ── Center Column: Info & Inquiry Actions ── */
 .spd-hero-center-col {
   display: flex;
   flex-direction: column;
@@ -294,41 +294,10 @@
 }
 
 .spd-short-desc-text {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   color: #475569;
-  line-height: 1.55;
-  margin: 0 0 1.25rem 0;
-}
-
-/* Pricing Row */
-.spd-pricing-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.35rem;
-}
-
-.spd-price-current {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #0F6B4F;
-  letter-spacing: -0.015em;
-}
-
-.spd-price-original {
-  font-size: 1.05rem;
-  color: #94A3B8;
-  text-decoration: line-through;
-  font-weight: 500;
-}
-
-.spd-discount-pill {
-  background: #FEE2E2;
-  color: #DC2626;
-  font-size: 0.76rem;
-  font-weight: 700;
-  padding: 0.22rem 0.55rem;
-  border-radius: 6px;
+  line-height: 1.6;
+  margin: 0 0 1.35rem 0;
 }
 
 /* Packaging Options */
@@ -376,61 +345,24 @@
   color: #ffffff;
 }
 
-/* Quantity & Buttons Row */
+/* Inquiry CTA Action Buttons */
 .spd-actions-cta-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 0.85rem;
+  margin-bottom: 1.65rem;
   flex-wrap: wrap;
 }
 
-.spd-qty-stepper {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #CBD5E1;
-  border-radius: 8px;
-  background: #ffffff;
-  overflow: hidden;
-  height: 44px;
-}
-
-.spd-qty-btn {
-  background: transparent;
-  border: none;
-  width: 36px;
-  height: 100%;
-  color: #334155;
-  font-size: 1.1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease;
-}
-
-.spd-qty-btn:hover {
-  background: #F1F5F9;
-}
-
-.spd-qty-value {
-  padding: 0 0.6rem;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #0F172A;
-  min-width: 24px;
-  text-align: center;
-}
-
-.spd-btn-add-cart {
-  flex: 1.2;
-  min-width: 140px;
-  height: 44px;
+.spd-btn-inquiry-primary {
+  flex: 1.3;
+  min-width: 180px;
+  height: 46px;
   background: #0F6B4F;
   color: #ffffff;
   border: none;
   border-radius: 8px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -440,16 +372,16 @@
   transition: all 0.2s ease;
 }
 
-.spd-btn-add-cart:hover {
+.spd-btn-inquiry-primary:hover {
   background: #0c563f;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15, 107, 79, 0.2);
+  box-shadow: 0 4px 12px rgba(15, 107, 79, 0.22);
 }
 
-.spd-btn-buy-now {
+.spd-btn-contact-outline {
   flex: 1;
-  min-width: 120px;
-  height: 44px;
+  min-width: 170px;
+  height: 46px;
   background: #ffffff;
   color: #0F6B4F;
   border: 1.5px solid #0F6B4F;
@@ -460,11 +392,12 @@
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.spd-btn-buy-now:hover {
+.spd-btn-contact-outline:hover {
   background: #F0FDF4;
   border-color: #0F6B4F;
   transform: translateY(-1px);
@@ -475,7 +408,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 1.1rem;
   background: #ffffff;
   border: 1px solid #EAECE8;
   border-radius: 12px;
@@ -1057,7 +990,7 @@
   margin: 0.5rem 0 0 0;
 }
 
-/* ── Related Products Carousel Section ── */
+/* ── Related Products Section ── */
 .spd-related-section {
   margin-top: 3.5rem;
 }
@@ -1211,29 +1144,11 @@
   text-overflow: ellipsis;
 }
 
-.spd-card-price-rating-row {
+.spd-card-rating-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.85rem;
-}
-
-.spd-card-prices {
-  display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-}
-
-.spd-card-price-now {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #0F6B4F;
-}
-
-.spd-card-price-old {
-  font-size: 0.78rem;
-  color: #94A3B8;
-  text-decoration: line-through;
 }
 
 .spd-card-rating {
@@ -1241,15 +1156,15 @@
   color: #64748B;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
-.spd-btn-card-add {
+.spd-btn-card-view {
   width: 100%;
   height: 38px;
-  background: #0F6B4F;
-  color: #ffffff;
-  border: none;
+  background: #F0FDF4;
+  color: #0F6B4F;
+  border: 1px solid #D6EAD9;
   border-radius: 7px;
   font-size: 0.82rem;
   font-weight: 700;
@@ -1257,16 +1172,19 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.15s ease;
   margin-top: auto;
 }
 
-.spd-btn-card-add:hover {
-  background: #0c563f;
+.spd-btn-card-view:hover {
+  background: #0F6B4F;
+  border-color: #0F6B4F;
+  color: #ffffff;
 }
 
-/* ── Order / Inquiry Modal Dialog ── */
+/* ── Product Inquiry Modal Dialog ── */
 .spd-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -1282,7 +1200,7 @@
 .spd-modal-box {
   background: #ffffff;
   border-radius: 16px;
-  max-width: 520px;
+  max-width: 500px;
   width: 100%;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   overflow: hidden;
@@ -1303,7 +1221,7 @@
 }
 
 .spd-modal-title {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 800;
   color: #0F172A;
   margin: 0;

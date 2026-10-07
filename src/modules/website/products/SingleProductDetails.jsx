@@ -1,8 +1,8 @@
 /* ============================================
    SINGLE PRODUCT DETAILS COMPONENT
    FILE: SingleProductDetails.jsx
-   Clean, Modern, Responsive E-commerce & Catalog UI
-   Matches Reference Screenshot Exactly
+   Clean, Modern, Responsive Product Catalog View UI
+   (Pure View & Product Inquiry Mode - No E-commerce)
    ============================================ */
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -12,33 +12,27 @@ import {
   CheckCircle2,
   ArrowLeft,
   Send,
-  Loader2,
   AlertCircle,
   Droplet,
   Bug,
   Star,
   ChevronRight,
   ChevronLeft,
-  ChevronDown,
-  ChevronUp,
   Leaf,
   Check,
-  Truck,
-  ShieldCheck,
-  RotateCcw,
-  Zap,
-  ShoppingCart,
   Calendar,
   Lock,
-  Plus,
-  Minus,
   Home,
   X,
   Sparkles,
   FlaskConical,
   Layers,
   Sprout,
-  Shield
+  Shield,
+  PhoneCall,
+  FileText,
+  BadgeCheck,
+  Award
 } from 'lucide-react';
 
 import { getProductByIdApi, getProductsApi } from '../../../api/productApi';
@@ -60,22 +54,20 @@ export default function SingleProductDetails() {
   const [otherProducts, setOtherProducts] = useState([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'specs' | 'reviews'
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [imgFading, setImgFading] = useState(false);
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
-  // Modal State
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('cart'); // 'cart' | 'buy'
+  // Inquiry Modal State
+  const [inquiryModalOpen, setInquiryModalOpen] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
     name: '',
     phone: '',
     email: '',
-    address: '',
-    notes: ''
+    state: '',
+    message: ''
   });
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
 
@@ -297,7 +289,6 @@ export default function SingleProductDetails() {
       extracted.unshift(product.image.trim());
     }
 
-    // If only 1 image exists, provide dummy variations or keep original
     if (extracted.length === 0) {
       extracted.push('/images/products/premium_dummy.jpg');
     }
@@ -354,35 +345,10 @@ export default function SingleProductDetails() {
     ];
   }, [product]);
 
-  // Calculate pricing based on pack size or defaults matching screenshot
-  const { currentPrice, originalPrice, discountPercent } = useMemo(() => {
-    let base = 250;
-    let orig = 320;
-
-    if (selectedPackage.includes('500')) {
-      base = 450;
-      orig = 580;
-    } else if (selectedPackage.includes('1 Litre') || selectedPackage.includes('1L')) {
-      base = 820;
-      orig = 1050;
-    } else if (selectedPackage.includes('200')) {
-      base = 120000;
-      orig = 150000;
-    }
-
-    const discount = Math.round(((orig - base) / orig) * 100);
-    return {
-      currentPrice: base,
-      originalPrice: orig,
-      discountPercent: discount
-    };
-  }, [selectedPackage]);
-
   // Open modal
-  const handleOpenModal = (type) => {
-    setModalType(type);
+  const handleOpenInquiry = () => {
     setInquirySubmitted(false);
-    setModalOpen(true);
+    setInquiryModalOpen(true);
   };
 
   const handleInquirySubmit = (e) => {
@@ -439,7 +405,7 @@ export default function SingleProductDetails() {
         </div>
       </div>
 
-      {/* ── 2. Hero 3-Column Section (Gallery | Info & CTA | Features & Suitable) ── */}
+      {/* ── 2. Hero 3-Column Section (Gallery | Info & Inquiries | Features & Suitable) ── */}
       <section className="spd-hero-section">
         <div className="container">
           <div className="spd-hero-grid">
@@ -521,7 +487,7 @@ export default function SingleProductDetails() {
               </div>
             </div>
 
-            {/* ── Col 2: Center Info, Pricing & CTA ── */}
+            {/* ── Col 2: Center Info, Packaging & Action Inquiry ── */}
             <div className="spd-hero-center-col">
               {/* Category Pill */}
               <span className="spd-category-pill">{categoryName}</span>
@@ -540,20 +506,13 @@ export default function SingleProductDetails() {
                 </div>
 
                 <div className="spd-trust-badge">
-                  <ShieldCheck size={14} />
+                  <BadgeCheck size={14} />
                   <span>Trusted by 5,000+ Farmers</span>
                 </div>
               </div>
 
               {/* Short Summary Description */}
               <p className="spd-short-desc-text">{shortDesc}</p>
-
-              {/* Pricing Row */}
-              <div className="spd-pricing-row">
-                <span className="spd-price-current">₹{currentPrice.toLocaleString()}</span>
-                <span className="spd-price-original">₹{originalPrice.toLocaleString()}</span>
-                <span className="spd-discount-pill">{discountPercent}% OFF</span>
-              </div>
 
               {/* Available Packaging */}
               <div className="spd-pack-block">
@@ -576,76 +535,52 @@ export default function SingleProductDetails() {
                 </div>
               </div>
 
-              {/* Quantity Stepper & Action Buttons */}
+              {/* Action Inquiry Buttons */}
               <div className="spd-actions-cta-row">
-                <div className="spd-qty-stepper">
-                  <button
-                    type="button"
-                    className="spd-qty-btn"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={15} />
-                  </button>
-                  <span className="spd-qty-value">{quantity}</span>
-                  <button
-                    type="button"
-                    className="spd-qty-btn"
-                    onClick={() => setQuantity(quantity + 1)}
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={15} />
-                  </button>
-                </div>
-
                 <button
                   type="button"
-                  className="spd-btn-add-cart"
-                  onClick={() => handleOpenModal('cart')}
+                  className="spd-btn-inquiry-primary"
+                  onClick={handleOpenInquiry}
                 >
-                  <ShoppingCart size={17} />
-                  <span>Add to Cart</span>
+                  <Send size={16} />
+                  <span>Send Product Inquiry</span>
                 </button>
 
-                <button
-                  type="button"
-                  className="spd-btn-buy-now"
-                  onClick={() => handleOpenModal('buy')}
-                >
-                  <Zap size={16} fill="currentColor" />
-                  <span>Buy Now</span>
-                </button>
+                <Link to="/contact" className="spd-btn-contact-outline">
+                  <PhoneCall size={16} />
+                  <span>Contact Technical Support</span>
+                </Link>
               </div>
 
-              {/* Trust Badges Strip */}
+              {/* Trust & Quality Assurance Strip */}
               <div className="spd-trust-badges-strip">
                 <div className="spd-trust-item">
                   <div className="spd-trust-icon-box">
-                    <Truck size={16} />
+                    <Award size={16} />
                   </div>
                   <div className="spd-trust-text-stack">
-                    <span className="spd-trust-title">Fast Delivery</span>
-                    <span className="spd-trust-sub">Within 3-7 Days</span>
+                    <span className="spd-trust-title">CIB Certified</span>
+                    <span className="spd-trust-sub">100% Genuine Quality</span>
                   </div>
                 </div>
 
                 <div className="spd-trust-item">
                   <div className="spd-trust-icon-box">
-                    <ShieldCheck size={16} />
+                    <Shield size={16} />
                   </div>
                   <div className="spd-trust-text-stack">
-                    <span className="spd-trust-title">Secure Payment</span>
-                    <span className="spd-trust-sub">100% Secure</span>
+                    <span className="spd-trust-title">Govt. Standard</span>
+                    <span className="spd-trust-sub">Approved Formulations</span>
                   </div>
                 </div>
 
                 <div className="spd-trust-item">
                   <div className="spd-trust-icon-box">
-                    <RotateCcw size={16} />
+                    <Sprout size={16} />
                   </div>
                   <div className="spd-trust-text-stack">
-                    <span className="spd-trust-title">Easy Returns</span>
-                    <span className="spd-trust-sub">Hassle Free</span>
+                    <span className="spd-trust-title">Expert Advice</span>
+                    <span className="spd-trust-sub">Free Crop Guidance</span>
                   </div>
                 </div>
               </div>
@@ -921,7 +856,7 @@ export default function SingleProductDetails() {
                   </div>
 
                   <div className="spd-spec-card-box">
-                    <div className="spd-spec-icon-box"><ShieldCheck size={18} /></div>
+                    <div className="spd-spec-icon-box"><CheckCircle2 size={18} /></div>
                     <div>
                       <h4 className="spd-spec-title">Safety & Antidote</h4>
                       <p className="spd-spec-val">Non-toxic biological formulation; treat symptomatically.</p>
@@ -991,7 +926,7 @@ export default function SingleProductDetails() {
                       ))}
                     </div>
                     <p className="spd-rev-comment">
-                      Delivered in 3 days. Genuine product and very affordable compared to local distributors.
+                      High quality formulation and very effective compared to standard market alternatives.
                     </p>
                   </div>
                 </div>
@@ -1045,8 +980,6 @@ export default function SingleProductDetails() {
                     name: 'Neem Based Insecticide',
                     category: 'Organic',
                     badgeClass: 'organic',
-                    price: 180,
-                    oldPrice: 220,
                     rating: 4.8,
                     reviewsCount: 49,
                     image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80'
@@ -1056,8 +989,6 @@ export default function SingleProductDetails() {
                     name: 'Trichoderma Viride',
                     category: 'Biological',
                     badgeClass: 'biological',
-                    price: 350,
-                    oldPrice: 420,
                     rating: 4.7,
                     reviewsCount: 76,
                     image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80'
@@ -1067,8 +998,6 @@ export default function SingleProductDetails() {
                     name: 'Copper Oxychloride 50% WP',
                     category: 'Fungicide',
                     badgeClass: 'fungicide',
-                    price: 420,
-                    oldPrice: 620,
                     rating: 4.5,
                     reviewsCount: 64,
                     image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80'
@@ -1078,8 +1007,6 @@ export default function SingleProductDetails() {
                     name: 'Imidacloprid 17.8% SL',
                     category: 'Insecticide',
                     badgeClass: 'insecticide',
-                    price: 320,
-                    oldPrice: 400,
                     rating: 4.6,
                     reviewsCount: 82,
                     image: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&w=400&q=80'
@@ -1090,8 +1017,6 @@ export default function SingleProductDetails() {
                 const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
                 const itemCat = item.category || 'Agrochemical';
                 const itemBadgeClass = item.badgeClass || (itemCat.toLowerCase().includes('bio') ? 'biological' : itemCat.toLowerCase().includes('org') ? 'organic' : 'fungicide');
-                const priceNow = item.price || (180 + idx * 70);
-                const priceOld = item.oldPrice || Math.round(priceNow * 1.25);
                 const ratingScore = item.rating || 4.7;
                 const revCount = item.reviewsCount || (40 + idx * 15);
 
@@ -1113,26 +1038,20 @@ export default function SingleProductDetails() {
                       <h4 className="spd-card-prod-name">{item.name}</h4>
                     </Link>
 
-                    <div className="spd-card-price-rating-row">
-                      <div className="spd-card-prices">
-                        <span className="spd-card-price-now">₹{priceNow}</span>
-                        <span className="spd-card-price-old">₹{priceOld}</span>
-                      </div>
-
+                    <div className="spd-card-rating-row">
                       <div className="spd-card-rating">
-                        <Star size={12} fill="#F59E0B" stroke="#F59E0B" />
-                        <span>{ratingScore} ({revCount})</span>
+                        <Star size={13} fill="#F59E0B" stroke="#F59E0B" />
+                        <span>{ratingScore} ({revCount} reviews)</span>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className="spd-btn-card-add"
-                      onClick={() => handleOpenModal('cart')}
+                    <Link
+                      to={`/products/view/${itemId}`}
+                      className="spd-btn-card-view"
                     >
-                      <ShoppingCart size={14} />
-                      <span>Add to Cart</span>
-                    </button>
+                      <span>View Product</span>
+                      <ChevronRight size={14} />
+                    </Link>
                   </div>
                 );
               })}
@@ -1141,18 +1060,16 @@ export default function SingleProductDetails() {
         </div>
       </section>
 
-      {/* ── 5. Quick Order / Inquiry Modal ── */}
-      {modalOpen && (
-        <div className="spd-modal-backdrop" onClick={() => setModalOpen(false)}>
+      {/* ── 5. Clean Product Inquiry Modal ── */}
+      {inquiryModalOpen && (
+        <div className="spd-modal-backdrop" onClick={() => setInquiryModalOpen(false)}>
           <div className="spd-modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="spd-modal-header">
-              <h3 className="spd-modal-title">
-                {modalType === 'buy' ? 'Fast Checkout / Direct Order' : 'Add to Cart & Quick Order'}
-              </h3>
+              <h3 className="spd-modal-title">Inquire About This Product</h3>
               <button
                 type="button"
                 className="spd-modal-close-btn"
-                onClick={() => setModalOpen(false)}
+                onClick={() => setInquiryModalOpen(false)}
               >
                 <X size={20} />
               </button>
@@ -1164,14 +1081,14 @@ export default function SingleProductDetails() {
                   <div className="spd-success-icon-wrap">
                     <CheckCircle2 size={32} />
                   </div>
-                  <h3>Order Request Received!</h3>
+                  <h3>Inquiry Submitted Successfully!</h3>
                   <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '0.5rem' }}>
-                    Thank you, <strong>{inquiryForm.name}</strong>! Our sales team will contact you shortly to confirm your order of <strong>{quantity}x {productName} ({selectedPackage})</strong>.
+                    Thank you, <strong>{inquiryForm.name}</strong>. Our agricultural technical team will connect with you soon regarding <strong>{productName} ({selectedPackage})</strong>.
                   </p>
                   <button
                     type="button"
                     className="spd-form-submit-btn"
-                    onClick={() => setModalOpen(false)}
+                    onClick={() => setInquiryModalOpen(false)}
                     style={{ marginTop: '1.25rem' }}
                   >
                     Close
@@ -1180,9 +1097,9 @@ export default function SingleProductDetails() {
               ) : (
                 <form onSubmit={handleInquirySubmit}>
                   <div style={{ background: '#F8FAF7', padding: '0.85rem 1rem', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid #EAECE8' }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}>{productName}</div>
+                    <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A' }}>{productName}</div>
                     <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
-                      Package: <strong>{selectedPackage}</strong> | Quantity: <strong>{quantity}</strong> | Total: <strong>₹{(currentPrice * quantity).toLocaleString()}</strong>
+                      Selected Pack Size: <strong>{selectedPackage}</strong>
                     </div>
                   </div>
 
@@ -1199,7 +1116,7 @@ export default function SingleProductDetails() {
                   </div>
 
                   <div className="spd-form-group">
-                    <label className="spd-form-label">Phone Number *</label>
+                    <label className="spd-form-label">Contact Number *</label>
                     <input
                       type="tel"
                       required
@@ -1211,19 +1128,30 @@ export default function SingleProductDetails() {
                   </div>
 
                   <div className="spd-form-group">
-                    <label className="spd-form-label">Delivery Address / Village & District</label>
+                    <label className="spd-form-label">Location / State</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Anand, Gujarat"
+                      className="spd-form-input"
+                      value={inquiryForm.state}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, state: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="spd-form-group">
+                    <label className="spd-form-label">Message / Requirement Details</label>
                     <textarea
                       rows={2}
-                      placeholder="Enter delivery address"
+                      placeholder="Ask about bulk supply, dealership, or technical dosage..."
                       className="spd-form-textarea"
-                      value={inquiryForm.address}
-                      onChange={(e) => setInquiryForm({ ...inquiryForm, address: e.target.value })}
+                      value={inquiryForm.message}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, message: e.target.value })}
                     />
                   </div>
 
                   <button type="submit" className="spd-form-submit-btn">
                     <Send size={16} />
-                    <span>Confirm & Place Inquiry</span>
+                    <span>Send Product Inquiry</span>
                   </button>
                 </form>
               )}
