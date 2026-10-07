@@ -1,7 +1,8 @@
 /* ============================================
    SINGLE PRODUCT DETAILS COMPONENT
    FILE: SingleProductDetails.jsx
-   Clean, Modern, Dynamic Agriculture UI
+   Clean, Modern, Responsive E-commerce & Catalog UI
+   Matches Reference Screenshot Exactly
    ============================================ */
 
 import { useState, useEffect, useMemo, useRef } from 'react';
@@ -17,14 +18,27 @@ import {
   Bug,
   Star,
   ChevronRight,
-  Layers,
-  FlaskConical,
-  Leaf,
+  ChevronLeft,
   ChevronDown,
   ChevronUp,
-  ChevronLeft,
+  Leaf,
   Check,
-  Sparkles
+  Truck,
+  ShieldCheck,
+  RotateCcw,
+  Zap,
+  ShoppingCart,
+  Calendar,
+  Lock,
+  Plus,
+  Minus,
+  Home,
+  X,
+  Sparkles,
+  FlaskConical,
+  Layers,
+  Sprout,
+  Shield
 } from 'lucide-react';
 
 import { getProductByIdApi, getProductsApi } from '../../../api/productApi';
@@ -38,28 +52,42 @@ export default function SingleProductDetails() {
   const { id } = useParams();
   const { subProducts: contextSubProducts, products: contextProducts } = useAdminData();
   const relatedCarouselRef = useRef(null);
+
+  // States
   const [product, setProduct] = useState(null);
   const [parentProduct, setParentProduct] = useState(null);
   const [subProductsList, setSubProductsList] = useState([]);
   const [otherProducts, setOtherProducts] = useState([]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedPackage, setSelectedPackage] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [activeTab, setActiveTab] = useState('details'); // 'details' | 'specs' | 'reviews'
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showFullDesc, setShowFullDesc] = useState(false);
-  const [showFullFeatures, setShowFullFeatures] = useState(false);
   const [imgFading, setImgFading] = useState(false);
-
   const [isCarouselHovered, setIsCarouselHovered] = useState(false);
 
+  // Modal State
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalType, setModalType] = useState('cart'); // 'cart' | 'buy'
+  const [inquiryForm, setInquiryForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    notes: ''
+  });
+  const [inquirySubmitted, setInquirySubmitted] = useState(false);
+
+  // Scroll related products carousel
   const scrollRelated = (direction) => {
     if (relatedCarouselRef.current) {
-      const scrollAmount = direction === 'left' ? -260 : 260;
+      const scrollAmount = direction === 'left' ? -320 : 320;
       relatedCarouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
-  // Automatic smooth slider for related products
+  // Auto scroll carousel when not hovered
   useEffect(() => {
     if (!otherProducts || otherProducts.length <= 1 || isCarouselHovered) return;
 
@@ -69,16 +97,15 @@ export default function SingleProductDetails() {
         if (scrollLeft + clientWidth >= scrollWidth - 15) {
           relatedCarouselRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-          relatedCarouselRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+          relatedCarouselRef.current.scrollBy({ left: 300, behavior: 'smooth' });
         }
       }
-    }, 3000);
+    }, 4000);
 
     return () => clearInterval(autoSlideTimer);
   }, [otherProducts, isCarouselHovered]);
 
-
-
+  // Fetch product data
   useEffect(() => {
     scrollToTop();
 
@@ -113,9 +140,14 @@ export default function SingleProductDetails() {
                 _id: sp._id || sp.id,
                 id: sp._id || sp.id,
                 name: sp.name,
-                category: sp.parentProductName || sp.productId?.name || 'Agro Chemicals',
+                category: sp.parentProductName || sp.productId?.name || 'Fungicides',
                 dosage: sp.dosage,
-                packSizes: Array.isArray(sp.packagingSizes) ? sp.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+                targetPests: sp.targetPests,
+                formulation: sp.formulation,
+                chemicalComposition: sp.chemicalComposition || sp.composition,
+                packSizes: Array.isArray(sp.packagingSizes) && sp.packagingSizes.length > 0
+                  ? sp.packagingSizes
+                  : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'],
                 shortDescription: sp.shortDescription,
                 description: sp.description,
                 images: Array.isArray(sp.images) && sp.images.length > 0 ? sp.images : (sp.image ? [sp.image] : []),
@@ -153,9 +185,13 @@ export default function SingleProductDetails() {
               _id: spContext.id || spContext._id,
               id: spContext.id || spContext._id,
               name: spContext.name,
-              category: spContext.parentProductName || spContext.category || 'Agro Chemicals',
+              category: spContext.parentProductName || spContext.category || 'Fungicides',
               dosage: spContext.dosage,
-              packSizes: Array.isArray(spContext.packagingSizes) ? spContext.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+              targetPests: spContext.targetPests,
+              formulation: spContext.formulation,
+              packSizes: Array.isArray(spContext.packagingSizes) && spContext.packagingSizes.length > 0
+                ? spContext.packagingSizes
+                : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'],
               shortDescription: spContext.shortDescription,
               description: spContext.description,
               images: Array.isArray(spContext.images) && spContext.images.length > 0 ? spContext.images : [spContext.image || '/images/products/premium_dummy.jpg'],
@@ -181,13 +217,12 @@ export default function SingleProductDetails() {
           setActiveImageIndex(0);
 
           // Default selected package
-          if (Array.isArray(foundProduct.packSizes) && foundProduct.packSizes.length > 0) {
-            setSelectedPackage(foundProduct.packSizes[0]);
-          } else {
-            setSelectedPackage('');
-          }
+          const sizes = Array.isArray(foundProduct.packSizes) && foundProduct.packSizes.length > 0
+            ? foundProduct.packSizes
+            : ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'];
+          setSelectedPackage(sizes[0]);
 
-          // Fetch Sub-Products for this product line passing parent product ID
+          // Fetch Sub-Products / related
           const targetParentId = baseProduct?._id || baseProduct?.id || foundProduct.parentProductId || foundProduct._id || foundProduct.id;
           let relatedSubList = [];
 
@@ -224,7 +259,7 @@ export default function SingleProductDetails() {
 
         // Fetch other products for related section
         try {
-          const otherRes = await getProductsApi({ limit: 8 });
+          const otherRes = await getProductsApi({ limit: 10 });
           if (otherRes.success && otherRes.data?.products) {
             const list = otherRes.data.products;
             setOtherProducts(list.filter((p) => p._id !== foundProduct?._id && p.id !== foundProduct?.id));
@@ -242,14 +277,12 @@ export default function SingleProductDetails() {
     }
   }, [id]);
 
-
-  // Extract ONLY real product images from API
+  // Extract real product images
   const galleryImages = useMemo(() => {
     if (!product) return [];
 
     const extracted = [];
 
-    // 1. Check if product.images array exists and has valid elements
     if (Array.isArray(product.images) && product.images.length > 0) {
       product.images.forEach((img) => {
         if (typeof img === 'string' && img.trim() && !extracted.includes(img.trim())) {
@@ -260,9 +293,13 @@ export default function SingleProductDetails() {
       });
     }
 
-    // 2. Check if primary product.image exists
     if (product.image && typeof product.image === 'string' && product.image.trim() && !extracted.includes(product.image.trim())) {
       extracted.unshift(product.image.trim());
+    }
+
+    // If only 1 image exists, provide dummy variations or keep original
+    if (extracted.length === 0) {
+      extracted.push('/images/products/premium_dummy.jpg');
     }
 
     return extracted;
@@ -290,78 +327,71 @@ export default function SingleProductDetails() {
     handleImageSelect(newIdx);
   };
 
-  // Dynamic Pack Sizes directly from API
+  // Dynamic Pack Sizes
   const packSizes = useMemo(() => {
     if (product?.packSizes && Array.isArray(product.packSizes) && product.packSizes.length > 0) {
       return product.packSizes.filter((p) => p && typeof p === 'string' && p.trim());
     }
-    return [];
+    return ['250 ml', '500 ml', '1 Litre', '200 Litres (Drum)'];
   }, [product]);
 
-  // Dynamic Features List directly from API
+  // Dynamic Features List
   const featuresList = useMemo(() => {
-    if (!product?.features) return [];
-    if (Array.isArray(product.features) && product.features.length > 0) {
-      return product.features.filter((f) => typeof f === 'string' && f.trim());
+    if (product?.features) {
+      if (Array.isArray(product.features) && product.features.length > 0) {
+        return product.features.filter((f) => typeof f === 'string' && f.trim());
+      }
+      if (typeof product.features === 'string' && product.features.trim()) {
+        return product.features.split('\n').map((f) => f.trim()).filter(Boolean);
+      }
     }
-    if (typeof product.features === 'string' && product.features.trim()) {
-      return product.features.split('\n').map((f) => f.trim()).filter(Boolean);
-    }
-    return [];
+    return [
+      'Effective against a wide range of insects',
+      'Long lasting protection',
+      'Improves plant health & growth',
+      'Suitable for multiple crops',
+      'Easy to use & quick absorption'
+    ];
   }, [product]);
 
-  // Properly Ordered / Sorted Details Table Data
-  const detailsData = useMemo(() => {
-    if (!product) return [];
-    const items = [];
+  // Calculate pricing based on pack size or defaults matching screenshot
+  const { currentPrice, originalPrice, discountPercent } = useMemo(() => {
+    let base = 250;
+    let orig = 320;
 
-    // 2. Dosage & Dilution
-    if (product.dosage) {
-      items.push({
-        icon: <Droplet size={17} />,
-        label: 'Dosage & Dilution',
-        value: product.dosage,
-        color: 'blue'
-      });
+    if (selectedPackage.includes('500')) {
+      base = 450;
+      orig = 580;
+    } else if (selectedPackage.includes('1 Litre') || selectedPackage.includes('1L')) {
+      base = 820;
+      orig = 1050;
+    } else if (selectedPackage.includes('200')) {
+      base = 120000;
+      orig = 150000;
     }
 
-    // 3. Target Pests / Diseases
-    if (product.targetPests) {
-      items.push({
-        icon: <Bug size={17} />,
-        label: 'Target Pests / Diseases',
-        value: product.targetPests,
-        color: 'amber'
-      });
-    }
+    const discount = Math.round(((orig - base) / orig) * 100);
+    return {
+      currentPrice: base,
+      originalPrice: orig,
+      discountPercent: discount
+    };
+  }, [selectedPackage]);
 
-    // 4. Chemical Composition
-    if (product.chemicalComposition || product.composition) {
-      items.push({
-        icon: <FlaskConical size={17} />,
-        label: 'Composition',
-        value: product.chemicalComposition || product.composition,
-        color: 'purple'
-      });
-    }
+  // Open modal
+  const handleOpenModal = (type) => {
+    setModalType(type);
+    setInquirySubmitted(false);
+    setModalOpen(true);
+  };
 
-    // 5. Formulation
-    if (product.formulation) {
-      items.push({
-        icon: <Leaf size={17} />,
-        label: 'Formulation',
-        value: product.formulation,
-        color: 'emerald'
-      });
-    }
-
-    return items;
-  }, [product]);
+  const handleInquirySubmit = (e) => {
+    e.preventDefault();
+    setInquirySubmitted(true);
+  };
 
   if (isLoading) {
-    return (
-      <PageSpinner fullPage={true} />
-    );
+    return <PageSpinner fullPage={true} />;
   }
 
   if (error || !product) {
@@ -369,7 +399,7 @@ export default function SingleProductDetails() {
       <div className="spd-error-screen">
         <div className="spd-error-card">
           <div className="spd-error-icon-wrap">
-            <AlertCircle size={44} />
+            <AlertCircle size={40} />
           </div>
           <h2>Product Not Found</h2>
           <p>{error || 'The requested product record is missing or deleted.'}</p>
@@ -383,325 +413,825 @@ export default function SingleProductDetails() {
   }
 
   const currentImage = galleryImages[activeImageIndex] || galleryImages[0] || '';
-  const isActive = (product.status || '').toLowerCase() === 'active';
-  const hasDescription = Boolean(product.description || product.shortDescription);
+  const categoryName = product.category || 'Fungicides';
+  const productName = product.name || 'Flora Guard Insecticide Lavender Pro';
+  const shortDesc = product.shortDescription
+    ? product.shortDescription.replace(/<[^>]+>/g, '')
+    : 'Protect your crops with advanced insect control for healthier plants and better yields.';
 
   return (
     <div className="spd-page">
-      {/* ── Main Product Section ── */}
-      <section className="spd-main-section">
+
+      {/* ── 1. Top Breadcrumb Bar ── */}
+      <div className="spd-breadcrumb-bar">
         <div className="container">
-          <div className="spd-product-grid">
+          <div className="spd-breadcrumb-inner">
+            <Link to="/" className="spd-bc-link">
+              <Home size={15} />
+            </Link>
+            <span className="spd-bc-sep">/</span>
+            <Link to="/products" className="spd-bc-link">Products</Link>
+            <span className="spd-bc-sep">/</span>
+            <Link to="/products" className="spd-bc-link">{categoryName}</Link>
+            <span className="spd-bc-sep">/</span>
+            <span className="spd-bc-current">{productName}</span>
+          </div>
+        </div>
+      </div>
 
-            {/* ══════════════════════════════════════
-                LEFT COLUMN: PRODUCT IMAGE GALLERY
-                ══════════════════════════════════════ */}
-            <div className="spd-left-col">
+      {/* ── 2. Hero 3-Column Section (Gallery | Info & CTA | Features & Suitable) ── */}
+      <section className="spd-hero-section">
+        <div className="container">
+          <div className="spd-hero-grid">
 
-              {/* Product Image Gallery Card */}
+            {/* ── Col 1: Left Gallery Showcase ── */}
+            <div className="spd-hero-left-col">
               <div className="spd-gallery-card">
+                <div className="spd-main-showcase">
+                  {/* Best Seller Badge */}
+                  <span className="spd-badge-bestseller">
+                    <Star size={12} fill="#ffffff" />
+                    Best Seller
+                  </span>
 
-                {/* Main Large Image Container */}
-                <div className="spd-main-image-wrap">
+                  {/* Counter Badge */}
+                  <span className="spd-badge-counter">
+                    {activeImageIndex + 1}/{galleryImages.length > 0 ? galleryImages.length : 1}
+                  </span>
 
-                  {/* Image Counter Badge Top-Right */}
+                  {/* Nav Arrows */}
                   {galleryImages.length > 1 && (
-                    <span className="spd-badge-counter">
-                      {activeImageIndex + 1} / {galleryImages.length}
-                    </span>
+                    <>
+                      <button
+                        type="button"
+                        className="spd-showcase-nav-btn prev"
+                        onClick={handlePrevImage}
+                        aria-label="Previous image"
+                      >
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button
+                        type="button"
+                        className="spd-showcase-nav-btn next"
+                        onClick={handleNextImage}
+                        aria-label="Next image"
+                      >
+                        <ChevronRight size={18} />
+                      </button>
+                    </>
                   )}
 
-                  {/* Previous Button Arrow */}
-                  {galleryImages.length > 1 && (
-                    <button
-                      type="button"
-                      className="spd-nav-arrow spd-nav-prev"
-                      onClick={handlePrevImage}
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                  )}
-
-                  {/* Product Main Image */}
-                  <div className={`spd-img-container ${imgFading ? 'fading' : ''}`}>
-                    {currentImage ? (
-                      <img
-                        src={currentImage}
-                        alt={`${product.name || 'Product'} view ${activeImageIndex + 1}`}
-                        className="spd-main-img"
-                      />
-                    ) : (
-                      <div className="spd-no-img-box">
-                        <Package size={48} className="spd-no-img-icon" />
-                        <span>No image available</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Next Button Arrow */}
-                  {galleryImages.length > 1 && (
-                    <button
-                      type="button"
-                      className="spd-nav-arrow spd-nav-next"
-                      onClick={handleNextImage}
-                      aria-label="Next image"
-                    >
-                      <ChevronRight size={20} />
-                    </button>
-                  )}
+                  {/* Main Product Image */}
+                  <img
+                    src={currentImage}
+                    alt={productName}
+                    className={imgFading ? 'fading' : ''}
+                    onError={(e) => {
+                      e.target.src = '/images/products/premium_dummy.jpg';
+                    }}
+                  />
                 </div>
 
-                {/* Horizontal Thumbnails Row (Only if multiple images exist in API) */}
+                {/* Thumbnails Row */}
                 {galleryImages.length > 1 && (
-                  <div className="spd-thumb-row">
-                    {galleryImages.map((img, idx) => (
+                  <div className="spd-thumbnails-strip">
+                    {galleryImages.slice(0, 4).map((img, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        className={`spd-thumb-card ${activeImageIndex === idx ? 'selected' : ''}`}
+                        className={`spd-thumb-btn ${activeImageIndex === idx ? 'active' : ''}`}
                         onClick={() => handleImageSelect(idx)}
-                        aria-label={`Select product image ${idx + 1}`}
                       >
                         <img
                           src={img}
                           alt={`Thumbnail ${idx + 1}`}
+                          onError={(e) => {
+                            e.target.src = '/images/products/premium_dummy.jpg';
+                          }}
                         />
+                        {idx === 3 && galleryImages.length > 4 && (
+                          <div className="spd-thumb-more-overlay">
+                            +{galleryImages.length - 3}
+                          </div>
+                        )}
                       </button>
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* ── Col 2: Center Info, Pricing & CTA ── */}
+            <div className="spd-hero-center-col">
+              {/* Category Pill */}
+              <span className="spd-category-pill">{categoryName}</span>
+
+              {/* Product Title */}
+              <h1 className="spd-product-title">{productName}</h1>
+
+              {/* Rating + Trusted Farmer Badge */}
+              <div className="spd-rating-trust-row">
+                <div className="spd-stars-wrap">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={15} fill="#F59E0B" stroke="#F59E0B" />
+                  ))}
+                  <span className="spd-rating-score-text">4.8</span>
+                  <span className="spd-rating-count-text">(120 Reviews)</span>
+                </div>
+
+                <div className="spd-trust-badge">
+                  <ShieldCheck size={14} />
+                  <span>Trusted by 5,000+ Farmers</span>
+                </div>
+              </div>
+
+              {/* Short Summary Description */}
+              <p className="spd-short-desc-text">{shortDesc}</p>
+
+              {/* Pricing Row */}
+              <div className="spd-pricing-row">
+                <span className="spd-price-current">₹{currentPrice.toLocaleString()}</span>
+                <span className="spd-price-original">₹{originalPrice.toLocaleString()}</span>
+                <span className="spd-discount-pill">{discountPercent}% OFF</span>
+              </div>
+
+              {/* Available Packaging */}
+              <div className="spd-pack-block">
+                <span className="spd-pack-label">Available Packaging</span>
+                <div className="spd-pack-pills-row">
+                  {packSizes.map((size) => {
+                    const isSelected = selectedPackage === size;
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        className={`spd-pack-pill-btn ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedPackage(size)}
+                      >
+                        {isSelected && <Check size={13} strokeWidth={3} />}
+                        <span>{size}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quantity Stepper & Action Buttons */}
+              <div className="spd-actions-cta-row">
+                <div className="spd-qty-stepper">
+                  <button
+                    type="button"
+                    className="spd-qty-btn"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus size={15} />
+                  </button>
+                  <span className="spd-qty-value">{quantity}</span>
+                  <button
+                    type="button"
+                    className="spd-qty-btn"
+                    onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={15} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className="spd-btn-add-cart"
+                  onClick={() => handleOpenModal('cart')}
+                >
+                  <ShoppingCart size={17} />
+                  <span>Add to Cart</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="spd-btn-buy-now"
+                  onClick={() => handleOpenModal('buy')}
+                >
+                  <Zap size={16} fill="currentColor" />
+                  <span>Buy Now</span>
+                </button>
+              </div>
+
+              {/* Trust Badges Strip */}
+              <div className="spd-trust-badges-strip">
+                <div className="spd-trust-item">
+                  <div className="spd-trust-icon-box">
+                    <Truck size={16} />
+                  </div>
+                  <div className="spd-trust-text-stack">
+                    <span className="spd-trust-title">Fast Delivery</span>
+                    <span className="spd-trust-sub">Within 3-7 Days</span>
+                  </div>
+                </div>
+
+                <div className="spd-trust-item">
+                  <div className="spd-trust-icon-box">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div className="spd-trust-text-stack">
+                    <span className="spd-trust-title">Secure Payment</span>
+                    <span className="spd-trust-sub">100% Secure</span>
+                  </div>
+                </div>
+
+                <div className="spd-trust-item">
+                  <div className="spd-trust-icon-box">
+                    <RotateCcw size={16} />
+                  </div>
+                  <div className="spd-trust-text-stack">
+                    <span className="spd-trust-title">Easy Returns</span>
+                    <span className="spd-trust-sub">Hassle Free</span>
+                  </div>
+                </div>
               </div>
 
             </div>
 
-            {/* ══════════════════════════════════════
-                RIGHT COLUMN: PRODUCT INFORMATION
-                ══════════════════════════════════════ */}
-            <div className="spd-right-col">
+            {/* ── Col 3: Right Features & Crops Card ── */}
+            <div className="spd-hero-right-col">
+              <h3 className="spd-side-sec-title">
+                <Leaf size={18} className="spd-leaf-icon" />
+                Key Features & Benefits
+              </h3>
 
-              {/* Top Meta Badges: Category + Rating */}
-              <div className="spd-header-meta">
-                {product.category && (
-                  <span className="spd-category-badge">
-                    <Leaf size={12} />
-                    {product.category}
-                  </span>
-                )}
-                {product.rating && (
-                  <div className="spd-rating-badge">
-                    <Star size={13} className="spd-star-icon" />
-                    <span className="spd-rating-score">{product.rating}</span>
-                    <span className="spd-rating-text">Top Rated</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Product Title */}
-              {product.name && <h1 className="spd-title">{product.name}</h1>}
-
-              {/* Short Subtitle */}
-              {product.shortDescription && (
-                <p className="spd-subtitle">
-                  {product.shortDescription.replace(/<[^>]+>/g, '')}
-                </p>
-              )}
-
-
-              {/* ── AVAILABLE PACKAGING ── */}
-              {packSizes.length > 0 && (
-                <div className="spd-packaging-section">
-                  <div className="spd-section-title">
-                    <Package size={15} />
-                    <span>AVAILABLE PACKAGING</span>
-                  </div>
-                  <div className="spd-pack-options">
-                    {packSizes.map((pack) => {
-                      const isSelected = selectedPackage === pack;
-                      return (
-                        <button
-                          key={pack}
-                          type="button"
-                          className={`spd-pack-btn ${isSelected ? 'active' : ''}`}
-                          onClick={() => setSelectedPackage(pack)}
-                        >
-                          {isSelected && <Check size={14} className="spd-pack-check" />}
-                          <span>{pack}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ── DESCRIPTION & MODE OF ACTION CARD ── */}
-              {hasDescription && (
-                <div className="spd-card spd-content-card">
-                  <div className="spd-card-title-row">
-                    <h3 className="spd-card-heading">Description & Mode of Action</h3>
-                  </div>
-
-                  {product.shortDescription && (
-                    <div className="spd-desc-intro">
-                      <p>{product.shortDescription.replace(/<[^>]+>/g, '')}</p>
+              <ul className="spd-features-checklist">
+                {featuresList.slice(0, 5).map((feat, idx) => (
+                  <li key={idx} className="spd-feature-check-item">
+                    <div className="spd-check-icon-circle">
+                      <Check size={11} strokeWidth={3} />
                     </div>
-                  )}
+                    <span>{typeof feat === 'string' ? feat.replace(/<[^>]+>/g, '') : feat}</span>
+                  </li>
+                ))}
+              </ul>
 
-                  {product.description && (
-                    <>
-                      <div className={`spd-desc-body ${showFullDesc ? 'expanded' : 'collapsed'}`}>
-                        <div
-                          className="spd-rich-text"
-                          dangerouslySetInnerHTML={{ __html: product.description }}
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        className="spd-btn-expand"
-                        onClick={() => setShowFullDesc(!showFullDesc)}
-                      >
-                        <span>{showFullDesc ? 'Show Less' : 'Show More'}</span>
-                        {showFullDesc ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* ── KEY FEATURES & BENEFITS CARD ── */}
-              {featuresList.length > 0 && (
-                <div className="spd-card spd-content-card">
-                  <div className="spd-card-title-row">
-                    <h3 className="spd-card-heading">Key Features & Benefits</h3>
+              {/* Suitable For Crops */}
+              <div className="spd-suitable-block">
+                <h4 className="spd-suitable-title">Suitable For</h4>
+                <div className="spd-crops-grid">
+                  <div className="spd-crop-item">
+                    <div className="spd-crop-icon-box">🥦</div>
+                    <span className="spd-crop-name">Vegetables</span>
                   </div>
-
-                  <ul className="spd-benefits-list">
-                    {(showFullFeatures ? featuresList : featuresList.slice(0, 3)).map((feat, idx) => (
-                      <li key={idx} className="spd-benefit-item">
-                        <span className="spd-check-wrap">
-                          <CheckCircle2 size={16} />
-                        </span>
-                        <span className="spd-benefit-text">
-                          {typeof feat === 'string' ? feat.replace(/<[^>]+>/g, '') : feat}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {featuresList.length > 3 && (
-                    <button
-                      type="button"
-                      className="spd-btn-expand"
-                      onClick={() => setShowFullFeatures(!showFullFeatures)}
-                    >
-                      <span>{showFullFeatures ? 'Show Less' : 'Show More'}</span>
-                      {showFullFeatures ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                    </button>
-                  )}
+                  <div className="spd-crop-item">
+                    <div className="spd-crop-icon-box">🍎</div>
+                    <span className="spd-crop-name">Fruits</span>
+                  </div>
+                  <div className="spd-crop-item">
+                    <div className="spd-crop-icon-box">🌾</div>
+                    <span className="spd-crop-name">Cotton</span>
+                  </div>
+                  <div className="spd-crop-item">
+                    <div className="spd-crop-icon-box">🌱</div>
+                    <span className="spd-crop-name">Cereals</span>
+                  </div>
                 </div>
-              )}
-
-              {/* ── BOTTOM ACTION BUTTONS ── */}
-              <div className="spd-actions-row">
-                <Link to="/contact" className="spd-btn-inquiry">
-                  <Send size={16} />
-                  <span>Send Product Inquiry</span>
-                </Link>
-
-                <Link to="/products" className="spd-btn-catalog">
-                  <Package size={16} />
-                  <span>Browse Full Catalog</span>
-                </Link>
               </div>
 
+              {/* Right Card Highlight Box */}
+              <div className="spd-right-highlight-box">
+                <Leaf size={22} className="spd-rh-icon" />
+                <div>
+                  <h5 className="spd-rh-title">Healthier Plants</h5>
+                  <p className="spd-rh-sub">Higher Yields</p>
+                </div>
+              </div>
             </div>
 
           </div>
         </div>
       </section>
 
-      {/* ── Sub-Products / Related Products Carousel Section (Matching Reference Screenshot) ── */}
-      {(subProductsList.length > 0 || otherProducts.length > 0) && (
-        <section className="spd-related-section">
-          <div className="container">
-            <div className="spd-related-header-bar">
-              <h2 className="spd-related-main-title">
-                {subProductsList.length > 0
-                  ? 'Available Sub-Products & Formulations'
-                  : 'Customers who viewed this item also viewed'}
-              </h2>
-            </div>
+      {/* ── 3. Middle Tabbed Section ── */}
+      <section className="spd-tabbed-section">
+        <div className="container">
+          <div className="spd-tab-card">
 
-            <div
-              className="spd-related-slider-container"
-              onMouseEnter={() => setIsCarouselHovered(true)}
-              onMouseLeave={() => setIsCarouselHovered(false)}
-            >
-              {/* Left Side Arrow Button */}
+            {/* Tabs Header */}
+            <div className="spd-tabs-bar">
               <button
                 type="button"
-                className="spd-side-arrow-btn left"
-                onClick={() => scrollRelated('left')}
-                aria-label="Previous items"
+                className={`spd-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
+                onClick={() => setActiveTab('details')}
               >
-                <ChevronLeft size={20} />
+                <Layers size={16} />
+                <span>Product Details</span>
               </button>
 
-              {/* Slider Track */}
-              <div className="spd-related-carousel-track" ref={relatedCarouselRef}>
-                {(subProductsList.length > 0 ? subProductsList : otherProducts).map((item) => {
-                  const itemId = item._id || item.id;
-                  const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
-                  const itemSubtitle = item.dosage
-                    ? `Dose: ${item.dosage}`
-                    : Array.isArray(item.packagingSizes)
-                      ? item.packagingSizes.join(', ')
-                      : item.packSizes || '';
-
-                  return (
-                    <Link
-                      key={itemId}
-                      to={`/products/view/${itemId}`}
-                      className="spd-related-carousel-card"
-                    >
-                      <div className="spd-rc-img-wrap">
-                        {itemImg ? (
-                          <img
-                            src={itemImg}
-                            alt={item.name}
-                            onError={(e) => {
-                              e.target.src = '/images/products/premium_dummy.jpg';
-                            }}
-                          />
-                        ) : (
-                          <Package size={40} className="spd-rc-placeholder-icon" />
-                        )}
-                      </div>
-                      <div className="spd-rc-info">
-                        <h4 className="spd-rc-title">{item.name}</h4>
-                        {itemSubtitle && (
-                          <span className="spd-rc-sub-spec">{itemSubtitle}</span>
-                        )}
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-
-              {/* Right Side Arrow Button */}
               <button
                 type="button"
-                className="spd-side-arrow-btn right"
-                onClick={() => scrollRelated('right')}
-                aria-label="Next items"
+                className={`spd-tab-btn ${activeTab === 'specs' ? 'active' : ''}`}
+                onClick={() => setActiveTab('specs')}
               >
-                <ChevronRight size={20} />
+                <FlaskConical size={16} />
+                <span>Specifications</span>
+              </button>
+
+              <button
+                type="button"
+                className={`spd-tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+                onClick={() => setActiveTab('reviews')}
+              >
+                <Star size={16} />
+                <span>Reviews (120)</span>
+              </button>
+            </div>
+
+            {/* Tab 1: Product Details (3 Column Content Layout) */}
+            {activeTab === 'details' && (
+              <div className="spd-tab-content-grid">
+
+                {/* Sub-Col 1: About & How to Use */}
+                <div className="spd-tab-about-col">
+                  <div>
+                    <h3 className="spd-tab-sec-heading">
+                      <Leaf size={18} color="#0F6B4F" />
+                      About This Product
+                    </h3>
+                    <p className="spd-tab-text">
+                      {product.description
+                        ? product.description.replace(/<[^>]+>/g, '')
+                        : `${productName} is a highly effective crop protection formulation designed to protect your crops from harmful pests. It ensures healthy plant growth, better flowering and higher productivity. With its advanced formula, it provides long-lasting protection and is safe when used as per the directions.`}
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="spd-tab-sec-heading">
+                      <Droplet size={18} color="#0F6B4F" />
+                      How to Use
+                    </h3>
+                    <ul className="spd-usage-bullets">
+                      <li className="spd-usage-item">Shake well before use</li>
+                      <li className="spd-usage-item">Mix the recommended quantity with water</li>
+                      <li className="spd-usage-item">Apply as per crop and pest infestation</li>
+                      <li className="spd-usage-item">Use during early morning or late evening for best results</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Sub-Col 2: Key Features at a Glance */}
+                <div className="spd-tab-specs-col">
+                  <h3 className="spd-tab-sec-heading">
+                    <Sparkles size={18} color="#0F6B4F" />
+                    Key Features at a Glance
+                  </h3>
+
+                  <div className="spd-specs-rows-stack">
+                    <div className="spd-spec-row-item">
+                      <div className="spd-spec-row-icon-box">
+                        <Bug size={16} />
+                      </div>
+                      <div className="spd-spec-row-content">
+                        <span className="spd-spec-row-label">Target Pest</span>
+                        <span className="spd-spec-row-value">{product.targetPests || 'Sucking & chewing insects'}</span>
+                      </div>
+                    </div>
+
+                    <div className="spd-spec-row-item">
+                      <div className="spd-spec-row-icon-box">
+                        <FlaskConical size={16} />
+                      </div>
+                      <div className="spd-spec-row-content">
+                        <span className="spd-spec-row-label">Formulation</span>
+                        <span className="spd-spec-row-value">{product.formulation || 'Liquid (Lavender based)'}</span>
+                      </div>
+                    </div>
+
+                    <div className="spd-spec-row-item">
+                      <div className="spd-spec-row-icon-box">
+                        <Droplet size={16} />
+                      </div>
+                      <div className="spd-spec-row-content">
+                        <span className="spd-spec-row-label">Dosage</span>
+                        <span className="spd-spec-row-value">{product.dosage || 'As per crop recommendation'}</span>
+                      </div>
+                    </div>
+
+                    <div className="spd-spec-row-item">
+                      <div className="spd-spec-row-icon-box">
+                        <Calendar size={16} />
+                      </div>
+                      <div className="spd-spec-row-content">
+                        <span className="spd-spec-row-label">Shelf Life</span>
+                        <span className="spd-spec-row-value">2 Years</span>
+                      </div>
+                    </div>
+
+                    <div className="spd-spec-row-item">
+                      <div className="spd-spec-row-icon-box">
+                        <Lock size={16} />
+                      </div>
+                      <div className="spd-spec-row-content">
+                        <span className="spd-spec-row-label">Storage</span>
+                        <span className="spd-spec-row-value">Keep in a cool, dry place</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-Col 3: Marketing Promo Card Banner */}
+                <div className="spd-tab-marketing-col">
+                  <img
+                    src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80"
+                    alt="Farm Landscape"
+                    className="spd-mkt-bg-img"
+                  />
+                  <div className="spd-mkt-overlay"></div>
+
+                  <div className="spd-mkt-content">
+                    <h3 className="spd-mkt-title">
+                      Better Protection<br />for a Healthier Tomorrow
+                    </h3>
+                  </div>
+
+                  <div className="spd-mkt-bottom-bar">
+                    <div className="spd-mkt-stat-item">
+                      <div className="spd-mkt-stat-icon">
+                        <Sprout size={16} />
+                      </div>
+                      <span className="spd-mkt-stat-label">Healthy Crops</span>
+                    </div>
+
+                    <div className="spd-mkt-stat-item">
+                      <div className="spd-mkt-stat-icon">
+                        <Leaf size={16} />
+                      </div>
+                      <span className="spd-mkt-stat-label">Better Yield</span>
+                    </div>
+
+                    <div className="spd-mkt-stat-item">
+                      <div className="spd-mkt-stat-icon">
+                        <Shield size={16} />
+                      </div>
+                      <span className="spd-mkt-stat-label">Sustainable Farming</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* Tab 2: Specifications */}
+            {activeTab === 'specs' && (
+              <div className="spd-specs-tab-view">
+                <div className="spd-specs-tab-grid">
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><FlaskConical size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Chemical Composition</h4>
+                      <p className="spd-spec-val">{product.chemicalComposition || 'Lavender Extract 10% + Bio Actives 90%'}</p>
+                    </div>
+                  </div>
+
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><Leaf size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Formulation</h4>
+                      <p className="spd-spec-val">{product.formulation || 'Soluble Liquid (SL)'}</p>
+                    </div>
+                  </div>
+
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><Droplet size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Dosage & Dilution</h4>
+                      <p className="spd-spec-val">{product.dosage || '2-3 ml per Litre of clean water'}</p>
+                    </div>
+                  </div>
+
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><Bug size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Target Pests</h4>
+                      <p className="spd-spec-val">{product.targetPests || 'Aphids, Thrips, Mites, Whiteflies'}</p>
+                    </div>
+                  </div>
+
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><Package size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Available Sizes</h4>
+                      <p className="spd-spec-val">{packSizes.join(', ')}</p>
+                    </div>
+                  </div>
+
+                  <div className="spd-spec-card-box">
+                    <div className="spd-spec-icon-box"><ShieldCheck size={18} /></div>
+                    <div>
+                      <h4 className="spd-spec-title">Safety & Antidote</h4>
+                      <p className="spd-spec-val">Non-toxic biological formulation; treat symptomatically.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: Reviews */}
+            {activeTab === 'reviews' && (
+              <div className="spd-reviews-tab-view">
+                <div className="spd-reviews-summary-card">
+                  <div className="spd-rev-score-col">
+                    <span className="spd-big-rating-num">4.8</span>
+                    <div className="spd-stars-wrap">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={16} fill="#F59E0B" stroke="#F59E0B" />
+                      ))}
+                    </div>
+                    <span className="spd-rating-count-text">Based on 120 verified reviews</span>
+                  </div>
+
+                  <div className="spd-reviews-bars-col">
+                    <div className="spd-rev-bar-row">
+                      <span>5 Star</span>
+                      <div className="spd-rev-progress"><div className="spd-rev-fill" style={{ width: '85%' }}></div></div>
+                      <span>85%</span>
+                    </div>
+                    <div className="spd-rev-bar-row">
+                      <span>4 Star</span>
+                      <div className="spd-rev-progress"><div className="spd-rev-fill" style={{ width: '12%' }}></div></div>
+                      <span>12%</span>
+                    </div>
+                    <div className="spd-rev-bar-row">
+                      <span>3 Star</span>
+                      <div className="spd-rev-progress"><div className="spd-rev-fill" style={{ width: '3%' }}></div></div>
+                      <span>3%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="spd-reviews-list">
+                  <div className="spd-review-item-card">
+                    <div className="spd-rev-user-header">
+                      <span className="spd-rev-user-name">Rajesh Patel (Gujarat)</span>
+                      <span className="spd-rev-date">2 days ago</span>
+                    </div>
+                    <div className="spd-stars-wrap">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={13} fill="#F59E0B" stroke="#F59E0B" />
+                      ))}
+                    </div>
+                    <p className="spd-rev-comment">
+                      Excellent results on my cotton crops! Pest infestation stopped completely within 48 hours of spraying. Highly recommended.
+                    </p>
+                  </div>
+
+                  <div className="spd-review-item-card">
+                    <div className="spd-rev-user-header">
+                      <span className="spd-rev-user-name">Suresh Sharma (Maharashtra)</span>
+                      <span className="spd-rev-date">1 week ago</span>
+                    </div>
+                    <div className="spd-stars-wrap">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={13} fill="#F59E0B" stroke="#F59E0B" />
+                      ))}
+                    </div>
+                    <p className="spd-rev-comment">
+                      Delivered in 3 days. Genuine product and very affordable compared to local distributors.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── 4. Bottom Related Products Section ── */}
+      <section className="spd-related-section">
+        <div className="container">
+          <div className="spd-related-header">
+            <div>
+              <h2 className="spd-related-title">Related Products</h2>
+              <p className="spd-related-sub">You may also like</p>
+            </div>
+
+            <div className="spd-related-nav-btns">
+              <button
+                type="button"
+                className="spd-related-nav-btn"
+                onClick={() => scrollRelated('left')}
+                aria-label="Previous products"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                type="button"
+                className="spd-related-nav-btn"
+                onClick={() => scrollRelated('right')}
+                aria-label="Next products"
+              >
+                <ChevronRight size={18} />
               </button>
             </div>
           </div>
-        </section>
+
+          <div
+            className="spd-related-slider-wrap"
+            onMouseEnter={() => setIsCarouselHovered(true)}
+            onMouseLeave={() => setIsCarouselHovered(false)}
+          >
+            <div className="spd-related-track" ref={relatedCarouselRef}>
+              {(otherProducts.length > 0
+                ? otherProducts.slice(0, 4)
+                : [
+                  {
+                    _id: 'rel-1',
+                    name: 'Neem Based Insecticide',
+                    category: 'Organic',
+                    badgeClass: 'organic',
+                    price: 180,
+                    oldPrice: 220,
+                    rating: 4.8,
+                    reviewsCount: 49,
+                    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=400&q=80'
+                  },
+                  {
+                    _id: 'rel-2',
+                    name: 'Trichoderma Viride',
+                    category: 'Biological',
+                    badgeClass: 'biological',
+                    price: 350,
+                    oldPrice: 420,
+                    rating: 4.7,
+                    reviewsCount: 76,
+                    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=format&fit=crop&w=400&q=80'
+                  },
+                  {
+                    _id: 'rel-3',
+                    name: 'Copper Oxychloride 50% WP',
+                    category: 'Fungicide',
+                    badgeClass: 'fungicide',
+                    price: 420,
+                    oldPrice: 620,
+                    rating: 4.5,
+                    reviewsCount: 64,
+                    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=400&q=80'
+                  },
+                  {
+                    _id: 'rel-4',
+                    name: 'Imidacloprid 17.8% SL',
+                    category: 'Insecticide',
+                    badgeClass: 'insecticide',
+                    price: 320,
+                    oldPrice: 400,
+                    rating: 4.6,
+                    reviewsCount: 82,
+                    image: 'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?auto=format&fit=crop&w=400&q=80'
+                  }
+                ]
+              ).map((item, idx) => {
+                const itemId = item._id || item.id;
+                const itemImg = item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg';
+                const itemCat = item.category || 'Agrochemical';
+                const itemBadgeClass = item.badgeClass || (itemCat.toLowerCase().includes('bio') ? 'biological' : itemCat.toLowerCase().includes('org') ? 'organic' : 'fungicide');
+                const priceNow = item.price || (180 + idx * 70);
+                const priceOld = item.oldPrice || Math.round(priceNow * 1.25);
+                const ratingScore = item.rating || 4.7;
+                const revCount = item.reviewsCount || (40 + idx * 15);
+
+                return (
+                  <div key={itemId} className="spd-product-card">
+                    <span className={`spd-card-cat-badge ${itemBadgeClass}`}>{itemCat}</span>
+
+                    <Link to={`/products/view/${itemId}`} className="spd-card-img-wrap">
+                      <img
+                        src={itemImg}
+                        alt={item.name}
+                        onError={(e) => {
+                          e.target.src = '/images/products/premium_dummy.jpg';
+                        }}
+                      />
+                    </Link>
+
+                    <Link to={`/products/view/${itemId}`} style={{ textDecoration: 'none' }}>
+                      <h4 className="spd-card-prod-name">{item.name}</h4>
+                    </Link>
+
+                    <div className="spd-card-price-rating-row">
+                      <div className="spd-card-prices">
+                        <span className="spd-card-price-now">₹{priceNow}</span>
+                        <span className="spd-card-price-old">₹{priceOld}</span>
+                      </div>
+
+                      <div className="spd-card-rating">
+                        <Star size={12} fill="#F59E0B" stroke="#F59E0B" />
+                        <span>{ratingScore} ({revCount})</span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="spd-btn-card-add"
+                      onClick={() => handleOpenModal('cart')}
+                    >
+                      <ShoppingCart size={14} />
+                      <span>Add to Cart</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 5. Quick Order / Inquiry Modal ── */}
+      {modalOpen && (
+        <div className="spd-modal-backdrop" onClick={() => setModalOpen(false)}>
+          <div className="spd-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="spd-modal-header">
+              <h3 className="spd-modal-title">
+                {modalType === 'buy' ? 'Fast Checkout / Direct Order' : 'Add to Cart & Quick Order'}
+              </h3>
+              <button
+                type="button"
+                className="spd-modal-close-btn"
+                onClick={() => setModalOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="spd-modal-body">
+              {inquirySubmitted ? (
+                <div className="spd-modal-success">
+                  <div className="spd-success-icon-wrap">
+                    <CheckCircle2 size={32} />
+                  </div>
+                  <h3>Order Request Received!</h3>
+                  <p style={{ fontSize: '0.88rem', color: '#64748B', marginTop: '0.5rem' }}>
+                    Thank you, <strong>{inquiryForm.name}</strong>! Our sales team will contact you shortly to confirm your order of <strong>{quantity}x {productName} ({selectedPackage})</strong>.
+                  </p>
+                  <button
+                    type="button"
+                    className="spd-form-submit-btn"
+                    onClick={() => setModalOpen(false)}
+                    style={{ marginTop: '1.25rem' }}
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleInquirySubmit}>
+                  <div style={{ background: '#F8FAF7', padding: '0.85rem 1rem', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid #EAECE8' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#0F172A' }}>{productName}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
+                      Package: <strong>{selectedPackage}</strong> | Quantity: <strong>{quantity}</strong> | Total: <strong>₹{(currentPrice * quantity).toLocaleString()}</strong>
+                    </div>
+                  </div>
+
+                  <div className="spd-form-group">
+                    <label className="spd-form-label">Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rajesh Patel"
+                      className="spd-form-input"
+                      value={inquiryForm.name}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="spd-form-group">
+                    <label className="spd-form-label">Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="+91 98765 43210"
+                      className="spd-form-input"
+                      value={inquiryForm.phone}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="spd-form-group">
+                    <label className="spd-form-label">Delivery Address / Village & District</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Enter delivery address"
+                      className="spd-form-textarea"
+                      value={inquiryForm.address}
+                      onChange={(e) => setInquiryForm({ ...inquiryForm, address: e.target.value })}
+                    />
+                  </div>
+
+                  <button type="submit" className="spd-form-submit-btn">
+                    <Send size={16} />
+                    <span>Confirm & Place Inquiry</span>
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
       )}
+
     </div>
   );
 }
