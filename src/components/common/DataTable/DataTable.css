@@ -1,0 +1,549 @@
+/* ============================================
+   DATA TABLE STYLES
+   FILE: src/components/common/DataTable/DataTable.css
+   Modern, Clean, Card-style DataTable UI
+   ============================================ */
+
+.dt-card-container {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  margin-bottom: 2rem;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dt-card-container:hover {
+  border-color: #CBD5E1;
+}
+
+/* ── Table Top Header ── */
+.dt-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #F1F5F9;
+  background: #ffffff;
+}
+
+.dt-title-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.dt-title {
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.dt-total-badge {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #64748B;
+}
+
+.dt-header-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Search Input ── */
+.dt-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+}
+
+.dt-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0.45rem 2rem 0.45rem 0.85rem;
+  font-size: 0.84rem;
+  color: #1E293B;
+  background: #ffffff;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.dt-search-input::placeholder {
+  color: #94A3B8;
+  font-size: 0.82rem;
+}
+
+.dt-search-input:focus {
+  border-color: #0F6B4F;
+  box-shadow: 0 0 0 3px rgba(15, 107, 79, 0.1);
+}
+
+.dt-search-clear-btn {
+  position: absolute;
+  right: 0.6rem;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.dt-search-clear-btn:hover {
+  color: #475569;
+}
+
+/* ── Table Wrapper & Scroller ── */
+.dt-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #ffffff;
+  min-height: 540px;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 #F8FAFC;
+}
+
+/* ── Modern, Small & Sleek Scrollbar UI ── */
+.dt-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dt-table-wrapper::-webkit-scrollbar-track {
+  background: #F8FAFC;
+  border-radius: 9999px;
+  margin: 4px;
+}
+
+.dt-table-wrapper::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+  border: 1px solid #F8FAFC;
+  transition: background 0.2s ease;
+}
+
+.dt-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dt-table-wrapper::-webkit-scrollbar-thumb:active {
+  background: #0F6B4F;
+}
+
+.dt-table-wrapper::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+/* ── Column Headers (TH) ── */
+.dt-table thead th {
+  background: #ffffff;
+  padding: 1rem 1.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748B;
+  border-bottom: 1px solid #F1F5F9;
+  white-space: nowrap;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 #F1F5F9;
+}
+
+.dt-th-sortable {
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.dt-th-sortable:hover {
+  color: #0F172A;
+}
+
+.dt-th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dt-sort-icon {
+  display: inline-flex;
+  color: #94A3B8;
+  transition: color 0.15s ease;
+}
+
+.dt-sort-icon.active {
+  color: #0F6B4F;
+}
+
+/* ── Table Body Rows (TD) - Spacious Row Height ── */
+.dt-table tbody tr {
+  height: 72px;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.15s ease;
+}
+
+.dt-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.dt-table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+.dt-table tbody td {
+  height: 72px;
+  padding: 0.95rem 1.35rem;
+  color: #334155;
+  vertical-align: middle;
+  font-size: 0.86rem;
+  box-sizing: border-box;
+}
+
+/* ── Primary Cell with Subtitle ── */
+.dt-cell-primary-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 100%;
+}
+
+.dt-cell-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  flex-shrink: 0;
+}
+
+.dt-cell-thumb.avatar {
+  border-radius: 50%;
+}
+
+.dt-cell-text-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: calc(100% - 52px);
+}
+
+.dt-cell-main-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #0F172A;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-cell-sub-text {
+  font-size: 0.76rem;
+  color: #64748B;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Status Pills ── */
+.dt-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.dt-status-pill.success,
+.dt-status-pill.active,
+.dt-status-pill.paid,
+.dt-status-pill.resolved {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.dt-status-pill.warning,
+.dt-status-pill.pending,
+.dt-status-pill.in-progress {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.dt-status-pill.danger,
+.dt-status-pill.inactive,
+.dt-status-pill.overdue,
+.dt-status-pill.rejected {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.dt-status-pill.info {
+  background: #E0F2FE;
+  color: #075985;
+}
+
+.dt-status-pill.neutral {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+/* ── Icon-Only Action Buttons with Tooltips ── */
+.dt-actions-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.dt-action-btn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.dt-action-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dt-action-btn.view:hover {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+  color: #166534;
+}
+
+.dt-action-btn.edit:hover {
+  background: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1E40AF;
+}
+
+.dt-action-btn.delete:hover {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  color: #991B1B;
+}
+
+/* Accessible CSS Tooltip */
+.dt-action-btn[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 115%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 0.3rem 0.55rem;
+  background: #0F172A;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  z-index: 50;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.dt-action-btn[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  bottom: 95%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #0F172A transparent transparent transparent;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 50;
+}
+
+.dt-action-btn:hover[data-tooltip]::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dt-action-btn:hover[data-tooltip]::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ── Empty & Loading States ── */
+.dt-empty-row {
+  text-align: center;
+  padding: 5.5rem 1.5rem !important;
+}
+
+.dt-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.dt-empty-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0;
+}
+
+.dt-empty-sub {
+  font-size: 0.82rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.dt-loading-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0F6B4F;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+/* ── Pagination Footer ── */
+.dt-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #F1F5F9;
+  background: #ffffff;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dt-footer-showing {
+  font-size: 0.82rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.dt-footer-showing strong {
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.dt-pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dt-page-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 0.45rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #E2E8F0;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.dt-page-btn:hover:not(:disabled) {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+.dt-page-btn.active {
+  background: #0F172A;
+  border-color: #0F172A;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.dt-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #E2E8F0;
+}
+
+/* Rows per page selector */
+.dt-limit-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #64748B;
+}
+
+.dt-limit-select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1E293B;
+  cursor: pointer;
+  outline: none;
+}
+
+.dt-limit-select:focus {
+  border-color: #0F6B4F;
+}

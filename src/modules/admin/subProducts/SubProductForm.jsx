@@ -1,23 +1,23 @@
 /* ============================================
    SUB-PRODUCT FORM COMPONENT
    FILE: SubProductForm.jsx
-   Clean, Modern Sub-Product Management UI
+   Clean, Modern Multi-Card Sub-Product UI
    ============================================ */
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
-  FlaskConical, 
-  Package, 
-  Tag, 
+  FileText, 
+  Droplet, 
+  ListChecks, 
+  ImagePlus, 
+  UploadCloud, 
   Trash2, 
   Star, 
-  UploadCloud, 
-  ImagePlus, 
   ArrowLeft, 
   Check, 
   X,
-  FileText
+  Plus
 } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { getProductsApi } from '../../../api/productApi';
@@ -60,18 +60,21 @@ export default function SubProductForm() {
   const [availableProducts, setAvailableProducts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [customSizeInput, setCustomSizeInput] = useState('');
+  
   const [formData, setFormData] = useState({
     name: '',
     parentProductId: '',
     parentProductName: '',
     dosage: '',
+    targetPests: '',
     packSizes: ['250 ml', '500 ml', '1 Litre'],
     shortDescription: '',
     description: '',
+    features: '',
     status: 'Active',
     images: [],
   });
-
 
   const [errors, setErrors] = useState({});
   const [isDragging, setIsDragging] = useState(false);
@@ -145,14 +148,23 @@ export default function SubProductForm() {
           ? [existing.image]
           : ['/images/products/premium_dummy.jpg'];
 
+        let formattedFeatures = '';
+        if (Array.isArray(existing.features)) {
+          formattedFeatures = `<ul>${existing.features.map(f => `<li>${f}</li>`).join('')}</ul>`;
+        } else {
+          formattedFeatures = existing.features || '';
+        }
+
         setFormData({
           name: existing.name || '',
           parentProductId: existing.parentProductId || '',
           parentProductName: existing.parentProductName || '',
           dosage: existing.dosage || '',
+          targetPests: existing.targetPests || '',
           packSizes: parsedSizes,
           shortDescription: (existing.shortDescription || '').replace(/<[^>]+>/g, ''),
           description: existing.description || '',
+          features: formattedFeatures,
           status: existing.status || 'Active',
           images: existingImages,
         });
@@ -218,40 +230,26 @@ export default function SubProductForm() {
     });
   };
 
-  // Multiple image upload handlers - saves files to backend uploads/sub-products/ folder
+  // Multiple image upload handlers - local compression & preview ONLY (NO API call on file select)
   const handleFiles = async (files) => {
     const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
     if (validFiles.length === 0) return;
 
     setIsUploadingImages(true);
     try {
-      // 1. Compress images for fast upload
       const compressionPromises = validFiles.map((file) => compressImage(file, 1000, 1000, 0.8));
       const compressedImages = await Promise.all(compressionPromises);
 
-      // 2. Upload to server project folder (assets/subproduct/)
-      const uploadRes = await uploadImagesApi(compressedImages, 'subproduct');
-      if (uploadRes && uploadRes.success && Array.isArray(uploadRes.data?.urls) && uploadRes.data.urls.length > 0) {
-        const storedUrls = uploadRes.data.urls;
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, ...storedUrls],
-        }));
-        showToast(`${storedUrls.length} ${storedUrls.length === 1 ? 'image' : 'images'} stored to assets/subproduct folder!`, 'success');
-      } else {
-        // Fallback to compressed base64 if server upload fails
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, ...compressedImages],
-        }));
-      }
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...compressedImages],
+      }));
 
       if (errors.images) {
         setErrors((prev) => ({ ...prev, images: '' }));
       }
     } catch (err) {
-      console.error('Error uploading images to server folder:', err);
-      showToast('Error uploading images to server folder', 'error');
+      showToast('Error reading selected image files', 'error');
     } finally {
       setIsUploadingImages(false);
     }
@@ -300,15 +298,29 @@ export default function SubProductForm() {
     showToast('Cover photo updated!', 'success');
   };
 
+  // Add custom pack size
+  const handleAddCustomSize = () => {
+    const trimmed = customSizeInput.trim();
+    if (trimmed && !formData.packSizes.includes(trimmed)) {
+      setFormData((prev) => ({
+        ...prev,
+        packSizes: [...prev.packSizes, trimmed],
+      }));
+      setCustomSizeInput('');
+    }
+  };
+
   const validate = () => {
     const errs = {};
-    if (!formData.name.trim()) errs.name = 'Product name is required.';
+    if (!formData.name.trim()) errs.name = 'Sub-product name is required.';
     if (!formData.shortDescription.trim()) errs.shortDescription = 'Short summary is required.';
     return errs;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -316,10 +328,38 @@ export default function SubProductForm() {
       return;
     }
 
+    let parsedFeatures = [];
+    if (typeof formData.features === 'string' && formData.features.trim()) {
+      const raw = formData.features;
+      if (/<li[\s\S]*?>/i.test(raw)) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = raw;
+        const lis = tempDiv.querySelectorAll('li');
+        if (lis.length > 0) {
+          parsedFeatures = Array.from(lis).map((li) => li.innerHTML.trim()).filter(Boolean);
+        } else {
+          parsedFeatures = [raw.trim()];
+        }
+      } else if (/<[a-z][\s\S]*>/i.test(raw)) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = raw;
+        const nodes = tempDiv.querySelectorAll('div, p');
+        if (nodes.length > 0) {
+          parsedFeatures = Array.from(nodes).map((n) => n.innerHTML.trim()).filter(Boolean);
+        } else {
+          parsedFeatures = [raw.trim()];
+        }
+      } else {
+        parsedFeatures = raw.split('\n').map((s) => s.trim()).filter(Boolean);
+      }
+    } else if (Array.isArray(formData.features)) {
+      parsedFeatures = formData.features;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // 1. Ensure all base64 images (if any) are uploaded to project folder first
+      // 1. Single upload API call when button is clicked (if new base64 images are present)
       let finalImages = [...formData.images];
       const base64Images = finalImages.filter((img) => typeof img === 'string' && img.startsWith('data:image/'));
       if (base64Images.length > 0) {
@@ -346,10 +386,12 @@ export default function SubProductForm() {
         parentProductId: formData.parentProductId,
         parentProductName: formData.parentProductName,
         dosage: formData.dosage,
+        targetPests: formData.targetPests,
         packagingSizes: formData.packSizes,
         packSizes: formData.packSizes.join(', '),
         shortDescription: formData.shortDescription.trim(),
         description: formData.description,
+        features: parsedFeatures,
         image: primaryImageUrl,
         images: finalImages.length > 0 ? finalImages : ['/images/products/premium_dummy.jpg'],
         status: formData.status || 'Active',
@@ -372,22 +414,20 @@ export default function SubProductForm() {
             skipApi: true,
           });
         } else {
-          await addSubProduct(payload);
+          await addSubProduct({ ...payload, skipApi: true });
         }
-        showToast('Sub-Product created successfully with image URLs!', 'success');
+        showToast('Sub-Product created successfully!', 'success');
       }
       navigate('/admin/sub-products');
     } catch (err) {
-      console.error('Error saving subproduct to database:', err);
       showToast('Error saving sub-product to database', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
   return (
-    <div className="admin-subproduct-form-page">
+    <div className="admin-subproduct-form-page admin-form-page-layout">
       {/* Header */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
@@ -408,86 +448,94 @@ export default function SubProductForm() {
         </div>
       </div>
 
-      {/* Main Form Container */}
-      <div className="admin-form-container">
-        <form onSubmit={handleSubmit} noValidate>
-          {/* Section 1: Product Identification & Summary */}
-          <div className="admin-form-section-title">
-            <FlaskConical size={18} className="text-emerald-700" />
-            <span>Product Identification &amp; Selection</span>
-          </div>
-
-          <div className="admin-form-grid-2">
-            {/* Product Name */}
-            <div className="admin-form-group">
-              <label htmlFor="sub-name" className="admin-form-label">
-                Product Name <span className="required">*</span>
-              </label>
-              <input
-                id="sub-name"
-                name="name"
-                type="text"
-                className={`admin-form-input ${errors.name ? 'error' : ''}`}
-                placeholder="e.g. Aadhira WG, Bitcoin SG, Redprid"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-              {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
+      <form onSubmit={handleSubmit} noValidate>
+        {/* Top 2-Column Cards Grid */}
+        <div className="admin-form-two-col-cards">
+          {/* Card 1: Basic Sub-Product Information */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <FileText size={18} className="admin-form-card-icon" />
+              <span>Basic Sub-Product Information</span>
             </div>
 
-            {/* Select Product Dropdown (All Products) */}
+            <div className="admin-form-grid-2">
+              {/* Product Name */}
+              <div className="admin-form-group">
+                <label htmlFor="sub-name" className="admin-form-label">
+                  Product Name <span className="required">*</span>
+                </label>
+                <input
+                  id="sub-name"
+                  name="name"
+                  type="text"
+                  className={`admin-form-input ${errors.name ? 'error' : ''}`}
+                  placeholder="e.g. Aadhira WG, Bitcoin SG, Redprid"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
+              </div>
+
+              {/* Select Parent Product */}
+              <div className="admin-form-group">
+                <label htmlFor="sub-parent" className="admin-form-label">
+                  Select Product <span className="required">*</span>
+                </label>
+                <AdminSelect
+                  id="sub-parent"
+                  name="parentProductId"
+                  value={formData.parentProductId}
+                  onChange={(e) => handleChange(e)}
+                  searchable={true}
+                  placeholder="Select product from catalog..."
+                  options={availableProducts.map((p) => ({
+                    value: p._id || p.id,
+                    label: p.name,
+                    badge: p.category,
+                  }))}
+                />
+              </div>
+            </div>
+
+            {/* Short Summary Textarea with char count */}
             <div className="admin-form-group">
-              <label htmlFor="sub-parent" className="admin-form-label">
-                Select Product <span className="required">*</span>
+              <label htmlFor="sub-short-desc" className="admin-form-label">
+                Short Summary <span className="required">*</span>
               </label>
-              <AdminSelect
-                id="sub-parent"
-                name="parentProductId"
-                value={formData.parentProductId}
-                onChange={(e) => handleChange(e)}
-                searchable={true}
-                placeholder="Select product from catalog..."
-                options={availableProducts.map((p) => ({
-                  value: p._id || p.id,
-                  label: p.name,
-                  badge: p.category,
-                }))}
-              />
+              <div className="admin-textarea-wrapper">
+                <textarea
+                  id="sub-short-desc"
+                  name="shortDescription"
+                  rows={4}
+                  maxLength={400}
+                  className={`admin-form-textarea ${errors.shortDescription ? 'error' : ''}`}
+                  placeholder="Brief summary for listings, cards, and catalog search."
+                  value={formData.shortDescription}
+                  onChange={handleChange}
+                  required
+                />
+                <span className="admin-char-count-badge">
+                  {formData.shortDescription.length}/400 chars
+                </span>
+              </div>
+              {errors.shortDescription && (
+                <span className="admin-form-error-msg">{errors.shortDescription}</span>
+              )}
             </div>
           </div>
 
-          {/* Short Summary * (Single-line / Text Input matching ProductForm) */}
-          <div className="admin-form-group">
-            <label htmlFor="sub-short-desc" className="admin-form-label">
-              Short Summary <span className="required">*</span>
-            </label>
-            <input
-              id="sub-short-desc"
-              name="shortDescription"
-              type="text"
-              className={`admin-form-input ${errors.shortDescription ? 'error' : ''}`}
-              placeholder="Brief summary for listings, cards, and catalog search..."
-              value={formData.shortDescription}
-              onChange={handleChange}
-              required
-            />
-            {errors.shortDescription && (
-              <span className="admin-form-error-msg">{errors.shortDescription}</span>
-            )}
-          </div>
+          {/* Card 2: Dosage, Target Pests & Packaging Specifications */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <Droplet size={18} className="admin-form-card-icon" />
+              <span>Dosage, Target Pests &amp; Packaging Specifications</span>
+            </div>
 
-          {/* Section 2: Packaging Sizes & Dosage */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <Package size={18} className="text-emerald-700" />
-            <span>Packaging &amp; Application Details</span>
-          </div>
-
-          <div className="admin-form-grid-2">
-            {/* Dosage */}
+            {/* Dosage & Dilution Rate */}
             <div className="admin-form-group">
               <label htmlFor="sub-dosage" className="admin-form-label">
-                Dosage &amp; Dilution Rate
+                Dosage &amp; Dilution Rate <span className="required">*</span>
               </label>
               <input
                 id="sub-dosage"
@@ -500,99 +548,104 @@ export default function SubProductForm() {
               />
             </div>
 
-            {/* Available Packaging Sizes (Select Dropdown - Exactly like Product create page) */}
+            {/* Target Pests / Diseases */}
+            <div className="admin-form-group">
+              <label htmlFor="sub-pests" className="admin-form-label">
+                Target Pests / Diseases
+              </label>
+              <input
+                id="sub-pests"
+                name="targetPests"
+                type="text"
+                className="admin-form-input"
+                placeholder="e.g. Bollworms, aphids, whiteflies, thrips & mites"
+                value={formData.targetPests}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* Available Packaging Sizes (Select Dropdown & Chips) */}
             <div className="admin-form-group">
               <label className="admin-form-label">
                 Available Packaging Sizes (Select Dropdown)
               </label>
-              <div className="admin-pack-size-selector-wrap">
-                <AdminSelect
-                  id="packaging-size-preset"
-                  name="packagingPreset"
-                  value=""
-                  onChange={(e) => {
-                    const selectedVal = e.target.value;
-                    if (selectedVal && !formData.packSizes.includes(selectedVal)) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        packSizes: [...prev.packSizes, selectedVal],
-                      }));
-                    }
-                  }}
-                  searchable={true}
-                  options={PACKAGING_SIZE_OPTIONS.filter((opt) => !formData.packSizes.includes(opt.value))}
-                  placeholder="Select packaging size to add..."
-                />
+              <AdminSelect
+                id="packaging-size-preset"
+                name="packagingPreset"
+                value=""
+                onChange={(e) => {
+                  const selectedVal = e.target.value;
+                  if (selectedVal && !formData.packSizes.includes(selectedVal)) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      packSizes: [...prev.packSizes, selectedVal],
+                    }));
+                  }
+                }}
+                searchable={true}
+                options={PACKAGING_SIZE_OPTIONS.filter((opt) => !formData.packSizes.includes(opt.value))}
+                placeholder="Select packaging size to add..."
+              />
+
+              {/* Selected Chips */}
+              <div className="admin-pack-chips-wrap">
+                {formData.packSizes.map((size) => (
+                  <span key={size} className="admin-pack-chip-pill">
+                    <span>{size}</span>
+                    <button
+                      type="button"
+                      className="admin-pack-chip-remove"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          packSizes: prev.packSizes.filter((s) => s !== size),
+                        }));
+                      }}
+                      title={`Remove ${size}`}
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                ))}
               </div>
 
-              {/* Selected Pack Sizes Chips */}
-              <div
-                className="admin-selected-sizes-chips"
-                style={{
-                  marginTop: '0.75rem',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
-                  background: '#F7FAF9',
-                  border: '1px solid #DDE5E1',
-                  borderRadius: '8px',
-                  minHeight: '48px',
-                  alignItems: 'center',
-                }}
-              >
-                {formData.packSizes.length === 0 ? (
-                  <span className="admin-no-sizes-msg" style={{ fontSize: '0.82rem', color: '#7A8983' }}>
-                    No packaging sizes selected. Choose sizes from the dropdown above.
-                  </span>
-                ) : (
-                  formData.packSizes.map((size) => (
-                    <span
-                      key={size}
-                      className="admin-size-chip"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        background: '#ffffff',
-                        color: '#0F6B4F',
-                        border: '1px solid #DDF5EA',
-                        padding: '0.35rem 0.75rem',
-                        borderRadius: '6px',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        boxShadow: '0 1px 2px rgba(23,43,36,0.05)',
-                      }}
-                    >
-                      <Tag size={13} />
-                      <span>{size}</span>
-                      <button
-                        type="button"
-                        className="btn-remove-size"
-                        onClick={() => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            packSizes: prev.packSizes.filter((s) => s !== size),
-                          }));
-                        }}
-                        title={`Remove ${size}`}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          padding: 0,
-                          marginLeft: '4px',
-                          color: '#0F6B4F',
-                        }}
-                      >
-                        <X size={13} />
-                      </button>
-                    </span>
-                  ))
+              {/* Custom Pack Size Adder Input */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <input
+                  type="text"
+                  className="admin-form-input"
+                  placeholder="Select packaging size to add..."
+                  value={customSizeInput}
+                  onChange={(e) => setCustomSizeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomSize();
+                    }
+                  }}
+                  style={{ fontSize: '0.85rem' }}
+                />
+                {customSizeInput.trim() && (
+                  <button
+                    type="button"
+                    className="btn-admin-secondary"
+                    onClick={handleAddCustomSize}
+                    style={{ padding: '0.5rem 0.85rem' }}
+                  >
+                    <Plus size={15} />
+                    <span>Add</span>
+                  </button>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Card 3: Descriptions & Features */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ListChecks size={18} className="admin-form-card-icon" />
+            <span>Descriptions &amp; Features</span>
           </div>
 
           {/* Detailed Description */}
@@ -605,20 +658,37 @@ export default function SubProductForm() {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Provide comprehensive instructions for farmers, mixing compatibility with other agrochemicals, spray intervals..."
+              placeholder="Provide comprehensive details about this agricultural chemical category."
               minHeight="160px"
             />
           </div>
 
-          {/* Section 3: Multiple Image Upload & Gallery Preview */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <ImagePlus size={18} style={{ color: '#0F6B4F' }} />
-            <span>Product Gallery &amp; Images Upload</span>
+          {/* Key Features & Benefits */}
+          <div className="admin-form-group" style={{ marginTop: '1.25rem' }}>
+            <label htmlFor="sub-features" className="admin-form-label">
+              Key Features &amp; Benefits (One bullet per line)
+            </label>
+            <RichTextEditor
+              id="sub-features"
+              name="features"
+              value={formData.features}
+              onChange={handleChange}
+              placeholder="• Consistent, lab-verified purity&#10;• Bulk drum packaging available"
+              minHeight="160px"
+            />
+          </div>
+        </div>
+
+        {/* Card 4: Media Gallery */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ImagePlus size={18} className="admin-form-card-icon" />
+            <span>Media Gallery</span>
           </div>
 
-          {/* Upload Dropzone */}
+          {/* Drag & Drop Upload Zone */}
           <div
-            className={`admin-image-upload-zone ${isDragging ? 'dragging' : ''}`}
+            className={`admin-media-dropzone-box ${isDragging ? 'dragging' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -632,37 +702,20 @@ export default function SubProductForm() {
               style={{ display: 'none' }}
               onChange={handleFileInputChange}
             />
-            <div className="admin-upload-zone-content">
-              <div className="admin-upload-icon-circle">
-                <UploadCloud size={28} className={isUploadingImages ? 'animate-bounce' : ''} />
-              </div>
-              <div className="admin-upload-text">
-                {isUploadingImages ? (
-                  <>
-                    <p className="admin-upload-title" style={{ color: '#0F6B4F' }}>
-                      <strong>Uploading images to project folder...</strong>
-                    </p>
-                    <p className="admin-upload-sub">
-                      Saving image files and generating URLs for database...
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="admin-upload-title">
-                      <strong>Click to upload</strong> or drag and drop sub-product images
-                    </p>
-                    <p className="admin-upload-sub">
-                      Stored on server folder (<code>assets/subproduct/</code>) • Saved as clean URLs in DB
-                    </p>
-                  </>
-                )}
-              </div>
+            <div className="admin-media-dropzone-icon">
+              <UploadCloud size={28} className={isUploadingImages ? 'animate-bounce' : ''} />
             </div>
+            <p className="admin-media-dropzone-title">
+              <strong>Click to upload</strong> or drag and drop multiple images
+            </p>
+            <p className="admin-media-dropzone-sub">
+              Stored on server folder <code>/assets/subproduct/1</code> - Saved as clean URLs in DB
+            </p>
           </div>
 
           {/* Uploaded Images Gallery Grid */}
           {formData.images.length > 0 && (
-            <div className="admin-uploaded-gallery-section">
+            <div className="admin-uploaded-gallery-section" style={{ marginTop: '1.5rem' }}>
               <div className="admin-gallery-header">
                 <span className="admin-gallery-count">
                   <strong>{formData.images.length}</strong> {formData.images.length === 1 ? 'image' : 'images'} uploaded
@@ -726,25 +779,26 @@ export default function SubProductForm() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Form Actions */}
-          <div className="admin-form-footer">
-            <Link to="/admin/sub-products" className="btn-admin-secondary">
-              Cancel
-            </Link>
-            <button type="submit" className="btn-admin-primary" disabled={isSubmitting}>
-              <Check size={16} strokeWidth={2.5} />
-              <span>
-                {isSubmitting
-                  ? 'Saving to Database...'
-                  : isEditMode
-                  ? 'Update Sub-Product'
-                  : 'Create Sub-Product'}
-              </span>
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Form Actions Footer */}
+        <div className="admin-form-actions-bar">
+          <Link to="/admin/sub-products" className="btn-admin-secondary">
+            Cancel
+          </Link>
+          <button type="submit" className="btn-admin-primary" disabled={isSubmitting}>
+            <Check size={16} strokeWidth={2.5} />
+            <span>
+              {isSubmitting
+                ? 'Saving to Database...'
+                : isEditMode
+                ? 'Update Sub-Product'
+                : 'Create Sub-Product'}
+            </span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
+

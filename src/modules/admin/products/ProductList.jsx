@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, Eye } from 'lucide-react';
 import { getProductsApi } from '../../../api/productApi';
 import { useToast } from '../../../context/ToastContext';
 import AdminSelect from '../../../components/common/AdminSelect';
+import { DataTable, TableCellPrimary, TableStatusBadge, TableActionButton } from '../../../components/common/DataTable';
 
 export default function ProductList() {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(5);
@@ -15,21 +17,28 @@ export default function ProductList() {
   const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
 
-  const categories = ['ALL', 'Insecticides', 'Fungicides', 'Herbicides', 'PGR & Nutrition', 'Biostimulants', 'Agriculture', 'Fertilizers'];
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const categories = ['ALL', 'Insecticides', 'Fungicides', 'Herbicides', 'PGR & Nutrition'];
 
   const categoryFilterOptions = categories.map((cat) => ({
     value: cat,
     label: cat === 'ALL' ? 'All Categories' : cat,
   }));
 
-  // Fetch Products from Backend API with Server-Side Pagination
+  // Fetch Products from Backend API with Server-Side Pagination (Single debounced call)
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await getProductsApi({
         page,
         limit,
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         category: categoryFilter !== 'ALL' ? categoryFilter : undefined,
       });
 
@@ -42,29 +51,102 @@ export default function ProductList() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, searchQuery, categoryFilter, showToast]);
+  }, [page, limit, debouncedSearch, categoryFilter, showToast]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setPage(1); // Reset to page 1 on search
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    setPage(1);
   };
 
   const handleCategoryChange = (e) => {
     setCategoryFilter(e.target.value);
-    setPage(1); // Reset to page 1 on category filter
+    setPage(1);
   };
 
-  const handleLimitChange = (e) => {
-    setLimit(Number(e.target.value));
-    setPage(1); // Reset to page 1 on limit change
+  const handleLimitChange = (newLimit) => {
+    setLimit(Number(newLimit));
+    setPage(1);
   };
 
-  const startRecord = (pagination.page - 1) * pagination.limit + (products.length > 0 ? 1 : 0);
-  const endRecord = Math.min(pagination.page * pagination.limit, pagination.total);
+  const columns = [
+    {
+      key: 'name',
+      header: 'Product Details',
+      sortable: true,
+      width: '36%',
+      render: (row) => (
+        <TableCellPrimary
+          title={row.name}
+          subtitle={row.shortDescription}
+          image={row.image || '/images/products/premium_dummy.jpg'}
+        />
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      sortable: true,
+      width: '16%',
+      render: (row) => <span className="admin-badge category">{row.category || 'Insecticides'}</span>,
+    },
+    {
+      key: 'features',
+      header: 'Features',
+      width: '14%',
+      render: (row) => (
+        <span className="admin-table-feature-pill">
+          {row.features?.length || 0} Features
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      width: '12%',
+      render: (row) => <TableStatusBadge status={row.status || 'Active'} />,
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      sortable: true,
+      width: '12%',
+      render: (row) => (
+        <span className="admin-table-date">
+          {row.createdAt ? new Date(row.createdAt).toISOString().split('T')[0] : '2026-08-15'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '10%',
+      align: 'right',
+      render: (row) => {
+        const prodId = row._id || row.id;
+        return (
+          <div className="dt-actions-group">
+            <TableActionButton
+              to={`/admin/products/edit/${prodId}`}
+              icon={Pencil}
+              title="Edit Product"
+              variant="edit"
+            />
+            <TableActionButton
+              to={`/admin/products/delete/${prodId}`}
+              icon={Trash2}
+              title="Delete Product"
+              variant="delete"
+            />
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="admin-product-list-page">
@@ -84,211 +166,43 @@ export default function ProductList() {
         </div>
       </div>
 
-      {/* Products Data Card */}
-      <div className="admin-card-container">
-        {/* Table Filters Header */}
-        <div className="admin-card-header-bar">
-          <div className="admin-table-filters">
-            <div className="admin-search-input-wrap">
-              <Search size={15} className="admin-search-icon" />
-              <input
-                type="text"
-                className="admin-search-input"
-                placeholder="Search products by name, category..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
-            </div>
-
-            <div style={{ minWidth: '200px' }}>
-              <AdminSelect
-                id="category-filter"
-                name="categoryFilter"
-                value={categoryFilter}
-                onChange={handleCategoryChange}
-                options={categoryFilterOptions}
-                prefixIcon={<Filter size={14} style={{ color: '#7A8983' }} />}
-                placeholder="Filter by category..."
-              />
-            </div>
+      {/* Common DataTable Component */}
+      <DataTable
+        title="Products"
+        totalCount={pagination.total}
+        searchPlaceholder="Search products by name, category..."
+        searchValue={searchQuery}
+        onSearchChange={handleSearchChange}
+        headerRight={
+          <div style={{ minWidth: '190px' }}>
+            <AdminSelect
+              id="category-filter"
+              name="categoryFilter"
+              value={categoryFilter}
+              onChange={handleCategoryChange}
+              options={categoryFilterOptions}
+              prefixIcon={<Filter size={14} style={{ color: '#7A8983' }} />}
+              placeholder="Filter category..."
+            />
           </div>
-
-          <div className="admin-table-counter">
-            Showing <strong>{startRecord}-{endRecord}</strong> of {pagination.total} products
-          </div>
-        </div>
-
-        {/* Responsive Table */}
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th style={{ width: '38%' }}>Product Details</th>
-                <th style={{ width: '16%' }}>Category</th>
-                <th style={{ width: '14%' }}>Features</th>
-                <th style={{ width: '12%' }}>Status</th>
-                <th style={{ width: '10%' }}>Created</th>
-                <th style={{ width: '10%', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="admin-table-empty">
-                    <p className="admin-table-empty-title">Loading Products from Backend API...</p>
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="admin-table-empty">
-                    <p className="admin-table-empty-title">No products found</p>
-                    <p className="admin-table-empty-sub">
-                      Try adjusting your search query or category filter to find what you're looking for.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                products.map((item) => {
-                  const isActive = item.status?.toLowerCase() === 'active';
-                  const prodId = item._id || item.id;
-                  const createdDate = item.createdAt
-                    ? new Date(item.createdAt).toISOString().split('T')[0]
-                    : '2026-08-15';
-
-                  return (
-                    <tr key={prodId}>
-                      <td>
-                        <div className="admin-table-item-cell">
-                          <img
-                            src={item.image || '/images/products/premium_dummy.jpg'}
-                            alt={item.name}
-                            className="admin-table-thumb"
-                            onError={(e) => {
-                              e.target.src = '/images/products/premium_dummy.jpg';
-                            }}
-                          />
-                          <div className="admin-table-item-info">
-                            <span className="admin-table-item-name">{item.name}</span>
-                            <span className="admin-table-item-sub">
-                              {item.shortDescription
-                                ? (item.shortDescription.length > 60
-                                  ? item.shortDescription.slice(0, 60) + '...'
-                                  : item.shortDescription)
-                                : 'No short description provided'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="admin-badge category">{item.category || 'Insecticides'}</span>
-                      </td>
-                      <td>
-                        <span className="admin-table-feature-pill">
-                          {item.features?.length || 0} Features
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`admin-badge-status ${isActive ? 'active' : 'inactive'}`}>
-                          <span className="status-dot"></span>
-                          {item.status || 'Active'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="admin-table-date">{createdDate}</span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="admin-table-actions">
-                          <Link
-                            to={`/admin/products/edit/${prodId}`}
-                            className="btn-table-action edit"
-                            title="Edit product details"
-                          >
-                            <Pencil size={13} strokeWidth={2} />
-                            <span>Edit</span>
-                          </Link>
-                          <Link
-                            to={`/admin/products/delete/${prodId}`}
-                            className="btn-table-action delete"
-                            title="Delete product"
-                          >
-                            <Trash2 size={13} strokeWidth={2} />
-                            <span>Delete</span>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Server-Side Pagination Controls Footer */}
-        {pagination.totalPages > 1 && (
-          <div className="admin-table-pagination-footer" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '1rem 1.5rem',
-            borderTop: '1px solid #DDE5E1',
-            background: '#ffffff',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', color: '#7A8983' }}>
-              <span>Rows per page:</span>
-              <select
-                value={limit}
-                onChange={handleLimitChange}
-                style={{
-                  padding: '0.35rem 0.6rem',
-                  borderRadius: '6px',
-                  border: '1px solid #DDE5E1',
-                  background: '#F7FAF9',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  color: '#172B24',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value={5}>5 per page</option>
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
-                <option value={50}>50 per page</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <button
-                type="button"
-                className="btn-admin-secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                style={{ opacity: page <= 1 ? 0.4 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer', padding: '0.4rem 0.8rem' }}
-              >
-                <ChevronLeft size={15} />
-                <span>Previous</span>
-              </button>
-
-              <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#172B24', padding: '0 0.5rem' }}>
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-
-              <button
-                type="button"
-                className="btn-admin-secondary"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                style={{ opacity: page >= pagination.totalPages ? 0.4 : 1, cursor: page >= pagination.totalPages ? 'not-allowed' : 'pointer', padding: '0.4rem 0.8rem' }}
-              >
-                <span>Next</span>
-                <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+        }
+        columns={columns}
+        data={products}
+        keyField="_id"
+        isLoading={isLoading}
+        loadingMessage="Loading products from database..."
+        emptyTitle="No products found"
+        emptySubtitle="Try adjusting your search query or category filter."
+        pagination={{
+          page,
+          totalPages: pagination.totalPages,
+          total: pagination.total,
+          limit,
+          onPageChange: setPage,
+          onLimitChange: handleLimitChange,
+          limitOptions: [5, 10, 20, 50],
+        }}
+      />
     </div>
   );
 }

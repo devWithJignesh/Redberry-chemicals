@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Star, Filter, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Star, Filter, RefreshCw } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { getReviewsApi } from '../../../api/reviewApi';
+import AdminSelect from '../../../components/common/AdminSelect';
+import { DataTable, TableCellPrimary, TableActionButton } from '../../../components/common/DataTable';
 
 export default function ReviewList() {
   const { reviews: contextReviews } = useAdminData();
@@ -10,6 +12,8 @@ export default function ReviewList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [rateFilter, setRateFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -30,29 +34,128 @@ export default function ReviewList() {
 
   useEffect(() => {
     fetchReviews();
-  }, [contextReviews]);
+  }, []);
 
   const activeReviewsList = apiReviews.length > 0 ? apiReviews : contextReviews;
 
-  const filteredReviews = activeReviewsList.filter((item) => {
-    const nameStr = (item.name || '').toLowerCase();
-    const addrStr = (item.address || item.location || '').toLowerCase();
-    const descStr = (item.description || item.review || item.title || '').toLowerCase();
-    const q = searchQuery.toLowerCase();
+  const filteredReviews = useMemo(() => {
+    return activeReviewsList.filter((item) => {
+      const nameStr = (item.name || '').toLowerCase();
+      const addrStr = (item.address || item.location || '').toLowerCase();
+      const descStr = (item.description || item.review || item.title || '').toLowerCase();
+      const q = searchQuery.toLowerCase();
 
-    const matchesSearch =
-      nameStr.includes(q) ||
-      addrStr.includes(q) ||
-      descStr.includes(q);
+      const matchesSearch =
+        nameStr.includes(q) ||
+        addrStr.includes(q) ||
+        descStr.includes(q);
 
-    const matchesRate =
-      rateFilter === 'ALL' || Math.floor(Number(item.rate || 5)) === Number(rateFilter);
+      const matchesRate =
+        rateFilter === 'ALL' || Math.floor(Number(item.rate || 5)) === Number(rateFilter);
 
-    return matchesSearch && matchesRate;
-  });
+      return matchesSearch && matchesRate;
+    });
+  }, [activeReviewsList, searchQuery, rateFilter]);
+
+  const totalPages = Math.ceil(filteredReviews.length / limit) || 1;
+  const paginatedReviews = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredReviews.slice(start, start + limit);
+  }, [filteredReviews, page, limit]);
+
+  const rateOptions = [
+    { value: 'ALL', label: 'All Ratings' },
+    { value: '5', label: '5 Stars (Excellent)' },
+    { value: '4', label: '4 Stars (Very Good)' },
+    { value: '3', label: '3 Stars (Good)' },
+    { value: '2', label: '2 Stars (Fair)' },
+    { value: '1', label: '1 Star (Poor)' },
+  ];
+
+  const columns = [
+    {
+      key: 'name',
+      header: 'Reviewer',
+      sortable: true,
+      width: '26%',
+      render: (row) => (
+        <TableCellPrimary
+          title={row.name}
+          subtitle={row.address || row.location || 'Verified Grower'}
+          image={row.image || '/images/reviews/farmer_1.png'}
+          isAvatar={true}
+          fallbackImage="/images/reviews/farmer_1.png"
+        />
+      ),
+    },
+    {
+      key: 'address',
+      header: 'Location',
+      sortable: true,
+      width: '18%',
+      render: (row) => (
+        <span style={{ fontSize: '0.85rem', color: '#475569' }}>
+          {row.address || row.location || 'India'}
+        </span>
+      ),
+    },
+    {
+      key: 'rate',
+      header: 'Rating',
+      sortable: true,
+      width: '15%',
+      render: (row) => (
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', color: '#D97706' }}>
+          <Star size={14} fill="#D97706" />
+          <span style={{ fontWeight: 700, fontSize: '0.84rem', color: '#334155' }}>
+            {Number(row.rate || 5).toFixed(1)} / 5.0
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'description',
+      header: 'Feedback Description',
+      width: '31%',
+      render: (row) => {
+        const feedbackText = row.description || row.review || row.title || '';
+        return (
+          <span style={{ fontSize: '0.82rem', color: '#475569', display: 'block', lineHeight: 1.4 }}>
+            {feedbackText.length > 90 ? feedbackText.slice(0, 90) + '...' : feedbackText || 'No description provided'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '10%',
+      align: 'right',
+      render: (row) => {
+        const reviewId = row._id || row.id;
+        return (
+          <div className="dt-actions-group">
+            <TableActionButton
+              to={`/admin/reviews/edit/${reviewId}`}
+              icon={Pencil}
+              title="Edit Review"
+              variant="edit"
+            />
+            <TableActionButton
+              to={`/admin/reviews/delete/${reviewId}`}
+              icon={Trash2}
+              title="Delete Review"
+              variant="delete"
+            />
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <div className="admin-review-list-page">
+      {/* Page Header */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
           <h1 className="admin-page-title">Customer Review Management</h1>
@@ -77,137 +180,52 @@ export default function ReviewList() {
         </div>
       </div>
 
-      <div className="admin-card-container">
-        <div className="admin-card-header-bar">
-          <div className="admin-table-filters">
-            <div className="admin-search-input-wrap">
-              <Search size={15} className="admin-search-icon" />
-              <input
-                type="text"
-                className="admin-search-input"
-                placeholder="Search reviews by name, address..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="admin-select-wrap">
-              <Filter size={14} className="admin-filter-icon" />
-              <select
-                className="admin-select-filter"
-                value={rateFilter}
-                onChange={(e) => setRateFilter(e.target.value)}
-              >
-                <option value="ALL">All Ratings</option>
-                <option value="5">5 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="2">2 Stars</option>
-                <option value="1">1 Star</option>
-              </select>
-            </div>
+      {/* Common DataTable Component */}
+      <DataTable
+        title="Reviews"
+        totalCount={filteredReviews.length}
+        searchPlaceholder="Search reviews by name, address..."
+        searchValue={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setPage(1);
+        }}
+        headerRight={
+          <div style={{ minWidth: '170px' }}>
+            <AdminSelect
+              id="rate-filter"
+              name="rateFilter"
+              value={rateFilter}
+              onChange={(e) => {
+                setRateFilter(e.target.value);
+                setPage(1);
+              }}
+              options={rateOptions}
+              prefixIcon={<Filter size={14} style={{ color: '#7A8983' }} />}
+              placeholder="Filter rating..."
+            />
           </div>
-
-          <div className="admin-table-counter">
-            Showing <strong>{filteredReviews.length}</strong> of {activeReviewsList.length} reviews
-          </div>
-        </div>
-
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th style={{ width: '25%' }}>Name</th>
-                <th style={{ width: '20%' }}>Address</th>
-                <th style={{ width: '15%' }}>Rating</th>
-                <th style={{ width: '25%' }}>Description</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReviews.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="admin-table-empty">
-                    <p className="admin-table-empty-title">No reviews found</p>
-                    <p className="admin-table-empty-sub">
-                      {loading ? 'Loading reviews from server...' : 'No customer reviews available in database.'}
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                filteredReviews.map((item) => {
-                  const reviewId = item._id || item.id;
-                  const feedbackText = item.description || item.review || item.title || '';
-                  const addressText = item.address || item.location || 'India';
-                  
-                  return (
-                    <tr key={reviewId}>
-                      <td>
-                        <div className="admin-table-item-cell">
-                          <img
-                            src={item.image || '/images/reviews/farmer_1.png'}
-                            alt={item.name}
-                            className="admin-table-thumb"
-                            style={{ borderRadius: '50%', objectFit: 'cover' }}
-                            onError={(e) => {
-                              e.target.src = '/images/reviews/farmer_1.png';
-                            }}
-                          />
-                          <div className="admin-table-item-info">
-                            <span className="admin-table-item-name">
-                              {item.name}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.85rem', color: '#52635C' }}>
-                          {addressText}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#D97706' }}>
-                          <Star size={14} fill="#D97706" />
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#52635C' }}>
-                            {Number(item.rate || 5).toFixed(1)} / 5.0
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ maxWidth: '360px' }}>
-                          <span className="admin-table-item-sub" style={{ display: 'block', color: '#172B24' }}>
-                            {feedbackText.length > 90 ? feedbackText.slice(0, 90) + '...' : feedbackText || 'No description provided'}
-                          </span>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="admin-table-actions">
-                          <Link
-                            to={`/admin/reviews/edit/${reviewId}`}
-                            className="btn-table-action edit"
-                            title="Edit review"
-                          >
-                            <Pencil size={13} strokeWidth={2} />
-                            <span>Edit</span>
-                          </Link>
-                          <Link
-                            to={`/admin/reviews/delete/${reviewId}`}
-                            className="btn-table-action delete"
-                            title="Delete review"
-                          >
-                            <Trash2 size={13} strokeWidth={2} />
-                            <span>Delete</span>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        }
+        columns={columns}
+        data={paginatedReviews}
+        keyField="_id"
+        isLoading={loading}
+        loadingMessage="Loading reviews from server..."
+        emptyTitle="No reviews found"
+        emptySubtitle="No customer reviews matched your search criteria."
+        pagination={{
+          page,
+          totalPages,
+          total: filteredReviews.length,
+          limit,
+          onPageChange: setPage,
+          onLimitChange: (lim) => {
+            setLimit(lim);
+            setPage(1);
+          },
+          limitOptions: [5, 10, 20, 50],
+        }}
+      />
     </div>
   );
 }

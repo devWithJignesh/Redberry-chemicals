@@ -5,20 +5,24 @@ import {
   MapPin, 
   Star, 
   ArrowLeft, 
-  Save, 
+  Check, 
   Upload, 
   Camera, 
   X,
-  FileText
+  FileText,
+  ListChecks,
+  ImagePlus
 } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { getReviewByIdApi } from '../../../api/reviewApi';
+import { useToast } from '../../../context/ToastContext';
 
 export default function ReviewForm() {
   const { id } = useParams();
   const isEditMode = Boolean(id);
   const navigate = useNavigate();
   const { getReviewById, addReview, updateReview } = useAdminData();
+  const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -65,6 +69,7 @@ export default function ReviewForm() {
             image: existing.image || '',
           });
         } else {
+          showToast('Review record not found.', 'error');
           navigate('/admin/reviews');
         }
         setIsLoading(false);
@@ -72,7 +77,7 @@ export default function ReviewForm() {
 
       loadReview();
     }
-  }, [id, isEditMode, getReviewById, navigate]);
+  }, [id, isEditMode, getReviewById, navigate, showToast]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -131,6 +136,7 @@ export default function ReviewForm() {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -147,12 +153,14 @@ export default function ReviewForm() {
     try {
       if (isEditMode) {
         await updateReview(id, finalData);
+        showToast('Customer review updated successfully!', 'success');
       } else {
         await addReview(finalData);
+        showToast('Customer review added successfully!', 'success');
       }
       navigate('/admin/reviews');
     } catch (err) {
-      console.warn('API error during review save:', err);
+      showToast(err.message || 'Error during review save.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -160,25 +168,25 @@ export default function ReviewForm() {
 
   const getRatingLabel = (score) => {
     switch (Math.round(score)) {
-      case 5: return '5.0 - Excellent';
-      case 4: return '4.0 - Very Good';
-      case 3: return '3.0 - Good';
-      case 2: return '2.0 - Fair';
-      case 1: return '1.0 - Poor';
+      case 5: return '5.0 - Excellent Rating';
+      case 4: return '4.0 - Very Good Rating';
+      case 3: return '3.0 - Good Rating';
+      case 2: return '2.0 - Fair Rating';
+      case 1: return '1.0 - Poor Rating';
       default: return `${score} Stars`;
     }
   };
 
   if (isLoading) {
     return (
-      <div className="admin-review-form-page" style={{ padding: '2rem', textAlign: 'center' }}>
-        <p style={{ color: '#52635C' }}>Loading review details...</p>
+      <div className="admin-review-form-page admin-form-page-layout" style={{ padding: '3rem', textAlign: 'center' }}>
+        <p style={{ color: '#64748B', fontWeight: 500 }}>Loading customer review details...</p>
       </div>
     );
   }
 
   return (
-    <div className="admin-review-form-page">
+    <div className="admin-review-form-page admin-form-page-layout">
       {/* Header Bar */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
@@ -187,8 +195,8 @@ export default function ReviewForm() {
           </h1>
           <p className="admin-page-subtitle">
             {isEditMode
-              ? `Modify customer review and rating (${id})`
-              : 'Add customer feedback with name, address, description, rating, and profile photo'}
+              ? `Modify customer feedback and rating score (${id})`
+              : 'Add customer feedback with name, address, testimonial description, rating, and profile photo'}
           </p>
         </div>
         <div className="admin-page-actions">
@@ -199,29 +207,21 @@ export default function ReviewForm() {
         </div>
       </div>
 
-      {/* Main Form Card */}
-      <div className="admin-form-container">
-        <form onSubmit={handleSubmit} noValidate>
-          
-          {/* Section 1: Customer Details */}
-          <div className="admin-form-section">
-            <div className="admin-form-section-header">
-              <div className="admin-form-section-icon">
-                <User size={18} />
-              </div>
-              <div>
-                <h3 className="admin-form-section-title">Customer Details</h3>
-                <p className="admin-form-section-desc">
-                  Reviewer name and address details
-                </p>
-              </div>
+      <form onSubmit={handleSubmit} noValidate>
+        {/* Top 2-Column Cards Grid */}
+        <div className="admin-form-two-col-cards">
+          {/* Card 1: Reviewer Information */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <FileText size={18} className="admin-form-card-icon" />
+              <span>Reviewer Information</span>
             </div>
 
             <div className="admin-form-grid-2">
               {/* Customer Name */}
               <div className="admin-form-group">
                 <label htmlFor="rev-name" className="admin-form-label">
-                  Name <span className="required">*</span>
+                  Customer Name <span className="required">*</span>
                 </label>
                 <div className="admin-input-icon-wrap">
                   <User size={15} className="admin-field-icon" />
@@ -239,10 +239,10 @@ export default function ReviewForm() {
                 {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
               </div>
 
-              {/* Address */}
+              {/* Address / Location */}
               <div className="admin-form-group">
                 <label htmlFor="rev-address" className="admin-form-label">
-                  Address <span className="required">*</span>
+                  Address / Location <span className="required">*</span>
                 </label>
                 <div className="admin-input-icon-wrap">
                   <MapPin size={15} className="admin-field-icon" />
@@ -262,24 +262,16 @@ export default function ReviewForm() {
             </div>
           </div>
 
-          {/* Section 2: Rating & Description */}
-          <div className="admin-form-section">
-            <div className="admin-form-section-header">
-              <div className="admin-form-section-icon">
-                <FileText size={18} />
-              </div>
-              <div>
-                <h3 className="admin-form-section-title">Rating & Description</h3>
-                <p className="admin-form-section-desc">
-                  Star score rating and review description
-                </p>
-              </div>
+          {/* Card 2: Rating & Feedback Score */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <Star size={18} className="admin-form-card-icon" />
+              <span>Rating &amp; Feedback Score</span>
             </div>
 
-            {/* Interactive Rating Selector */}
             <div className="admin-form-group">
               <label className="admin-form-label">
-                Rating <span className="required">*</span>
+                Star Rating <span className="required">*</span>
               </label>
               <div className="admin-star-rating-box">
                 <div className="admin-star-buttons-row">
@@ -301,8 +293,8 @@ export default function ReviewForm() {
                         <Star
                           size={24}
                           className="admin-star-svg"
-                          fill={isFilled ? '#D97706' : 'none'}
-                          stroke={isFilled ? '#D97706' : '#DDE5E1'}
+                          fill={isFilled ? '#F59E0B' : 'none'}
+                          stroke={isFilled ? '#F59E0B' : '#CBD5E1'}
                           strokeWidth={1.8}
                         />
                       </button>
@@ -316,108 +308,113 @@ export default function ReviewForm() {
               </div>
               {errors.rate && <span className="admin-form-error-msg">{errors.rate}</span>}
             </div>
+          </div>
+        </div>
 
-            {/* Review Description */}
-            <div className="admin-form-group">
-              <label htmlFor="rev-desc" className="admin-form-label">
-                Description <span className="required">*</span>
-              </label>
+        {/* Card 3: Detailed Testimonial / Description */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ListChecks size={18} className="admin-form-card-icon" />
+            <span>Customer Testimonial &amp; Feedback</span>
+          </div>
+
+          <div className="admin-form-group">
+            <label htmlFor="rev-desc" className="admin-form-label">
+              Detailed Description <span className="required">*</span>
+            </label>
+            <div className="admin-textarea-wrapper">
               <textarea
                 id="rev-desc"
                 name="description"
                 rows={5}
+                maxLength={600}
                 className={`admin-form-textarea ${errors.description ? 'error' : ''}`}
-                placeholder="Enter customer feedback description..."
+                placeholder="Provide comprehensive details about this customer's feedback and crop protection results with Redberry agrochemicals..."
                 value={formData.description}
                 onChange={handleChange}
                 required
               />
-              {errors.description && (
-                <span className="admin-form-error-msg">{errors.description}</span>
-              )}
+              <span className="admin-char-count-badge">
+                {formData.description.length}/600 chars
+              </span>
             </div>
+            {errors.description && (
+              <span className="admin-form-error-msg">{errors.description}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Reviewer Profile Photo */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ImagePlus size={18} className="admin-form-card-icon" />
+            <span>Reviewer Profile Photo</span>
           </div>
 
-          {/* Section 3: Upload Profile Image */}
-          <div className="admin-form-section">
-            <div className="admin-form-section-header">
-              <div className="admin-form-section-icon">
-                <Camera size={18} />
-              </div>
-              <div>
-                <h3 className="admin-form-section-title">Profile Image</h3>
-                <p className="admin-form-section-desc">
-                  Upload customer profile avatar photo
+          <div className="admin-form-group">
+            <div className="admin-avatar-upload-wrap">
+              {formData.image ? (
+                <div className="admin-avatar-preview-box">
+                  <img
+                    src={formData.image}
+                    alt="Reviewer Preview"
+                    className="admin-avatar-preview-img"
+                    onError={(e) => {
+                      e.target.src = '/images/reviews/farmer_1.png';
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-remove-avatar"
+                    onClick={handleRemoveImage}
+                    title="Remove photo"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div className="admin-avatar-placeholder">
+                  <Camera size={24} className="avatar-placeholder-icon" style={{ color: '#94A3B8' }} />
+                  <span style={{ fontSize: '0.72rem', color: '#64748B' }}>No photo</span>
+                </div>
+              )}
+
+              <div className="admin-avatar-upload-controls">
+                <label className="btn-admin-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Upload size={14} />
+                  <span>{formData.image ? 'Change Photo' : 'Upload Profile Image'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+                <p className="admin-form-hint" style={{ margin: 0, marginTop: '0.35rem' }}>
+                  Recommended: Square avatar photo (PNG, JPG, WebP). Default avatar will be assigned if empty.
                 </p>
               </div>
             </div>
-
-            <div className="admin-form-group" style={{ marginTop: '1.25rem' }}>
-              <label className="admin-form-label">Profile Image (Optional)</label>
-              
-              <div className="admin-avatar-upload-wrap">
-                {formData.image ? (
-                  <div className="admin-avatar-preview-box">
-                    <img
-                      src={formData.image}
-                      alt="Reviewer Preview"
-                      className="admin-avatar-preview-img"
-                      onError={(e) => {
-                        e.target.src = '/images/reviews/farmer_1.png';
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="btn-remove-avatar"
-                      onClick={handleRemoveImage}
-                      title="Remove photo"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="admin-avatar-placeholder">
-                    <Camera size={24} className="avatar-placeholder-icon" />
-                    <span>No photo uploaded</span>
-                  </div>
-                )}
-
-                <div className="admin-avatar-upload-controls">
-                  <label className="btn-admin-secondary" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
-                    <Upload size={14} />
-                    <span>{formData.image ? 'Change Photo' : 'Upload Profile Image'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                  <p className="admin-form-hint" style={{ margin: 0 }}>
-                    Recommended: Square photo (PNG, JPG, WebP).
-                  </p>
-                </div>
-              </div>
-              {errors.image && <span className="admin-form-error-msg">{errors.image}</span>}
-            </div>
+            {errors.image && <span className="admin-form-error-msg">{errors.image}</span>}
           </div>
+        </div>
 
-          {/* Form Actions Footer */}
-          <div className="admin-form-footer">
-            <Link to="/admin/reviews" className="btn-admin-secondary">
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              className="btn-admin-primary"
-              disabled={isSubmitting}
-            >
-              <Save size={16} />
-              <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Review' : 'Save Review'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Form Actions Footer */}
+        <div className="admin-form-actions-bar">
+          <Link to="/admin/reviews" className="btn-admin-secondary">
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            className="btn-admin-primary"
+            disabled={isSubmitting}
+          >
+            <Check size={16} strokeWidth={2.5} />
+            <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Review' : 'Save Review'}</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
+

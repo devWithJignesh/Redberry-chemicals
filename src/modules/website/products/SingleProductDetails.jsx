@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 import { getProductByIdApi, getProductsApi } from '../../../api/productApi';
-import { getSubProductByIdApi, getSubProductsApi } from '../../../api/subProductApi';
+import { getSubProductByIdApi, getSubProductsApi, getSubProductsByProductIdApi } from '../../../api/subProductApi';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { scrollToTop } from '../../../utils/helpers';
 import { PageSpinner } from '../../../components/common/Loader/PageSpinner';
@@ -240,7 +240,7 @@ export default function SingleProductDetails() {
     if (id) {
       fetchProductDetails();
     }
-  }, [id, contextSubProducts, contextProducts]);
+  }, [id]);
 
 
   // Extract ONLY real product images from API

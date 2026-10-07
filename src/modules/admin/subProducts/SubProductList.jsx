@@ -1,29 +1,26 @@
 /* ============================================
    SUB-PRODUCT MANAGEMENT LIST COMPONENT
    FILE: src/modules/admin/subProducts/SubProductList.jsx
-   Clean, Compact UI with Horizontal Table Scroller & Small Action Buttons
+   Clean, Compact UI with Common DataTable & Tooltip Action Buttons
    ============================================ */
 
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Plus,
-  Search,
   Pencil,
   Trash2,
   Eye,
   FlaskConical,
-  ChevronLeft,
-  ChevronRight,
   X,
   Tag,
   AlertCircle,
-  Images,
-  Layers
+  Images
 } from 'lucide-react';
 import { useAdminData } from '../../../context/AdminDataContext';
 import { getSubProductsApi, deleteSubProductApi } from '../../../api/subProductApi';
 import { useToast } from '../../../context/ToastContext';
+import { DataTable, TableStatusBadge, TableActionButton } from '../../../components/common/DataTable';
 
 export default function SubProductList() {
   const { subProducts, deleteSubProduct: contextDeleteSubProduct } = useAdminData();
@@ -35,7 +32,7 @@ export default function SubProductList() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Modals state
   const [viewingItem, setViewingItem] = useState(null);
@@ -86,7 +83,7 @@ export default function SubProductList() {
 
   useEffect(() => {
     fetchFreshSubProducts();
-  }, [subProducts]);
+  }, []);
 
   // Filter items
   const filteredSubProducts = useMemo(() => {
@@ -132,6 +129,130 @@ export default function SubProductList() {
     }
   };
 
+  const columns = [
+    {
+      key: 'name',
+      header: 'Sub-Product Item',
+      sortable: true,
+      width: '28%',
+      render: (item) => {
+        const imageCount = Array.isArray(item.images) ? item.images.length : 1;
+        return (
+          <div className="dt-cell-primary-wrap">
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <img
+                src={item.image || '/images/products/premium_dummy.jpg'}
+                alt={item.name}
+                className="dt-cell-thumb"
+                onError={(e) => {
+                  e.target.src = '/images/products/premium_dummy.jpg';
+                }}
+              />
+              {imageCount > 1 && (
+                <span className="subproduct-image-count-badge" title={`${imageCount} images`}>
+                  <Images size={8} style={{ display: 'inline', marginRight: '2px' }} />
+                  {imageCount}
+                </span>
+              )}
+            </div>
+            <div className="dt-cell-text-stack">
+              <span className="dt-cell-main-title">{item.name}</span>
+              {item.shortDescription && (
+                <span className="dt-cell-sub-text">
+                  {item.shortDescription.length > 50 ? item.shortDescription.slice(0, 50) + '...' : item.shortDescription}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'parentProductName',
+      header: 'Product Line',
+      sortable: true,
+      width: '20%',
+      render: (item) => (
+        <span style={{ fontWeight: 500, color: '#334155' }}>
+          {item.parentProductName || item.category || 'Agro Chemicals'}
+        </span>
+      ),
+    },
+    {
+      key: 'dosage',
+      header: 'Dosage & Dilution',
+      width: '18%',
+      render: (item) => (
+        <span style={{ fontSize: '0.82rem', color: '#52635C', fontWeight: 600 }}>
+          {item.dosage || 'Standard dose'}
+        </span>
+      ),
+    },
+    {
+      key: 'packagingSizes',
+      header: 'Packaging Sizes',
+      width: '18%',
+      render: (item) => {
+        const packArray = Array.isArray(item.packagingSizes) && item.packagingSizes.length > 0
+          ? item.packagingSizes
+          : (item.packSizes || '').split(',').map((s) => s.trim()).filter(Boolean);
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {packArray.slice(0, 2).map((size, sIdx) => (
+              <span key={sIdx} className="subproduct-pack-chip" style={{ fontSize: '0.72rem', padding: '0.15rem 0.4rem' }}>
+                {size}
+              </span>
+            ))}
+            {packArray.length > 2 && (
+              <span
+                className="subproduct-pack-chip more"
+                style={{ fontSize: '0.72rem', padding: '0.15rem 0.4rem' }}
+                title={packArray.slice(2).join(', ')}
+              >
+                +{packArray.length - 2}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      sortable: true,
+      width: '10%',
+      render: (item) => <TableStatusBadge status={item.status || 'Active'} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '10%',
+      align: 'right',
+      render: (item) => (
+        <div className="dt-actions-group">
+          <TableActionButton
+            icon={Eye}
+            title="Quick View Details"
+            variant="view"
+            onClick={() => setViewingItem(item)}
+          />
+          <TableActionButton
+            to={`/admin/sub-products/edit/${item.id || item._id}`}
+            icon={Pencil}
+            title="Edit Sub-Product"
+            variant="edit"
+          />
+          <TableActionButton
+            icon={Trash2}
+            title="Delete Sub-Product"
+            variant="delete"
+            onClick={() => setDeletingItem(item)}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="admin-subproduct-list-page">
       {/* Page Header */}
@@ -143,249 +264,43 @@ export default function SubProductList() {
           </p>
         </div>
         <div className="admin-page-actions">
-          <Link to="/admin/sub-products/add" className="btn-admin-primary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.82rem' }}>
+          <Link to="/admin/sub-products/add" className="btn-admin-primary">
             <Plus size={15} strokeWidth={2.5} />
             <span>Add Sub-Product</span>
           </Link>
         </div>
       </div>
 
-      {/* Main Table Card */}
-      <div className="admin-card-container">
-        {/* Filters & Search Header */}
-        <div className="admin-card-header-bar">
-          <div className="admin-table-filters">
-            <div className="admin-search-input-wrap" style={{ minWidth: '280px' }}>
-              <Search size={14} className="admin-search-icon" />
-              <input
-                type="text"
-                className="admin-search-input"
-                placeholder="Search sub-products by name, dosage, packaging..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  style={{
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    color: '#7A8983',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 4px',
-                  }}
-                >
-                  <X size={13} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="admin-table-counter">
-            Showing <strong>{filteredSubProducts.length}</strong> of {itemsList.length} sub-products
-          </div>
-        </div>
-
-        {/* Scrollable Table Container with Horizontal Scroller */}
-        <div className="admin-table-wrapper" style={{ overflowX: 'auto' }}>
-          <table className="admin-table subproduct-management-table" style={{ minWidth: '980px' }}>
-            <thead>
-              <tr>
-                <th style={{ width: '28%', minWidth: '240px' }}>Sub-Product Item</th>
-                <th style={{ width: '18%', minWidth: '160px' }}>Product Name</th>
-                <th style={{ width: '18%', minWidth: '150px' }}>Dosage & Dilution</th>
-                <th style={{ width: '18%', minWidth: '160px' }}>Packaging Sizes</th>
-                <th style={{ width: '10%', minWidth: '120px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#0F6B4F' }}>
-                      <FlaskConical size={18} className="animate-spin" />
-                      <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Loading Sub-Products...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : paginatedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="admin-table-empty">
-                    <p className="admin-table-empty-title">No sub-products found</p>
-                    <p className="admin-table-empty-sub">
-                      Try adjusting your search query.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                paginatedItems.map((item) => {
-                  const isActive = item.status?.toLowerCase() === 'active';
-                  const packArray = Array.isArray(item.packagingSizes) && item.packagingSizes.length > 0 ? item.packagingSizes : (item.packSizes || '').split(',').map((s) => s.trim()).filter(Boolean);
-                  const imageCount = Array.isArray(item.images) ? item.images.length : 1;
-
-                  return (
-                    <tr key={item.id || item._id}>
-                      {/* Sub-Product Item Cell */}
-                      <td>
-                        <div className="admin-table-item-cell">
-                          <div style={{ position: 'relative', flexShrink: 0 }}>
-                            <img
-                              src={item.image || '/images/products/premium_dummy.jpg'}
-                              alt={item.name}
-                              className="admin-table-thumb"
-                              style={{ width: '38px', height: '38px', borderRadius: '6px' }}
-                              onError={(e) => {
-                                e.target.src = '/images/products/premium_dummy.jpg';
-                              }}
-                            />
-                            {imageCount > 1 && (
-                              <span className="subproduct-image-count-badge" title={`${imageCount} images`}>
-                                <Images size={8} style={{ display: 'inline', marginRight: '2px' }} />
-                                {imageCount}
-                              </span>
-                            )}
-                          </div>
-                          <div className="admin-table-item-info">
-                            <span className="admin-table-item-name" style={{ fontWeight: 600, fontSize: '0.84rem', color: '#172B24' }}>
-                              {item.name}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Parent Product Line */}
-                      <td>
-                        {item.parentProductName || item.category}
-                      </td>
-
-                      {/* Dosage */}
-                      <td>
-                        <span style={{ fontSize: '0.8rem', color: '#52635C', fontWeight: 600 }}>
-                          {item.dosage || 'Standard dose'}
-                        </span>
-                      </td>
-
-                      {/* Packaging Sizes Chips */}
-                      <td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-                          {packArray.slice(0, 2).map((size, sIdx) => (
-                            <span key={sIdx} className="subproduct-pack-chip" style={{ fontSize: '0.72rem', padding: '0.15rem 0.4rem' }}>
-                              {size}
-                            </span>
-                          ))}
-                          {packArray.length > 2 && (
-                            <span className="subproduct-pack-chip more" style={{ fontSize: '0.72rem', padding: '0.15rem 0.4rem' }} title={packArray.slice(2).join(', ')}>
-                              +{packArray.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Actions: Small, sleek buttons */}
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="admin-table-actions" style={{ justifyContent: 'flex-end', gap: '0.25rem' }}>
-                          {/* Quick View Button */}
-                          <button
-                            type="button"
-                            className="btn-table-action"
-                            style={{
-                              background: '#F7FAF9',
-                              color: '#52635C',
-                              border: '1px solid #DDE5E1',
-                              padding: '0.25rem 0.45rem',
-                              fontSize: '0.74rem',
-                              gap: '3px',
-                            }}
-                            title="View Details"
-                            onClick={() => setViewingItem(item)}
-                          >
-                            <Eye size={12} strokeWidth={2} />
-                            <span>View</span>
-                          </button>
-
-                          {/* Edit Button */}
-                          <Link
-                            to={`/admin/sub-products/edit/${item.id || item._id}`}
-                            className="btn-table-action edit"
-                            style={{ padding: '0.25rem 0.45rem', fontSize: '0.74rem', gap: '3px' }}
-                            title="Edit Sub-Product"
-                          >
-                            <Pencil size={12} strokeWidth={2} />
-                            <span>Edit</span>
-                          </Link>
-
-                          {/* Delete Button */}
-                          <button
-                            type="button"
-                            className="btn-table-action delete"
-                            style={{ padding: '0.25rem 0.45rem', fontSize: '0.74rem', gap: '3px' }}
-                            title="Delete Sub-Product"
-                            onClick={() => setDeletingItem(item)}
-                          >
-                            <Trash2 size={12} strokeWidth={2} />
-                            <span>Delete</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {filteredSubProducts.length > 0 && (
-          <div className="admin-table-pagination" style={{ padding: '0.75rem 1.25rem' }}>
-            <span style={{ fontSize: '0.78rem', color: '#7A8983' }}>
-              Showing <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> to{' '}
-              <strong>{Math.min(currentPage * itemsPerPage, filteredSubProducts.length)}</strong> of{' '}
-              <strong>{filteredSubProducts.length}</strong> items
-            </span>
-
-            <div className="admin-pagination-pages">
-              <button
-                type="button"
-                className="admin-page-btn"
-                style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft size={13} />
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
-                <button
-                  key={pg}
-                  type="button"
-                  style={{ minWidth: '28px', height: '28px', fontSize: '0.75rem', padding: '0 0.4rem' }}
-                  className={`admin-page-btn ${currentPage === pg ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(pg)}
-                >
-                  {pg}
-                </button>
-              ))}
-
-              <button
-                type="button"
-                className="admin-page-btn"
-                style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              >
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* Common DataTable Component */}
+      <DataTable
+        title="Formulations"
+        totalCount={filteredSubProducts.length}
+        searchPlaceholder="Search sub-products by name, dosage, packaging..."
+        searchValue={searchQuery}
+        onSearchChange={(val) => {
+          setSearchQuery(val);
+          setCurrentPage(1);
+        }}
+        columns={columns}
+        data={paginatedItems}
+        keyField="id"
+        isLoading={isLoading}
+        loadingMessage="Loading sub-products..."
+        emptyTitle="No sub-products found"
+        emptySubtitle="Try adjusting your search query."
+        pagination={{
+          page: currentPage,
+          totalPages,
+          total: filteredSubProducts.length,
+          limit: itemsPerPage,
+          onPageChange: setCurrentPage,
+          onLimitChange: (lim) => {
+            setItemsPerPage(lim);
+            setCurrentPage(1);
+          },
+          limitOptions: [5, 10, 20, 50],
+        }}
+      />
 
       {/* QUICK VIEW MODAL */}
       {viewingItem && (

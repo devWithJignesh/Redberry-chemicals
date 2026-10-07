@@ -14,17 +14,17 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
     if (pathname.includes('/admin/products/edit')) return 'Product / Edit Record';
     if (pathname.includes('/admin/products/delete')) return 'Product / Delete Confirmation';
     if (pathname.includes('/admin/products')) return 'Product / List';
-    
+
     if (pathname.includes('/admin/sub-products/add')) return 'Sub-Product / Add New';
     if (pathname.includes('/admin/sub-products/edit')) return 'Sub-Product / Edit Record';
     if (pathname.includes('/admin/sub-products/delete')) return 'Sub-Product / Delete Confirmation';
     if (pathname.includes('/admin/sub-products')) return 'Sub-Product / List';
-    
+
     if (pathname.includes('/admin/reviews/add')) return 'Customer Review / Add New';
     if (pathname.includes('/admin/reviews/edit')) return 'Customer Review / Edit Record';
     if (pathname.includes('/admin/reviews/delete')) return 'Customer Review / Delete Confirmation';
     if (pathname.includes('/admin/reviews')) return 'Customer Review / List';
-    
+
     if (pathname.includes('/admin/inquiries/add')) return 'Inquiry / Create New';
     if (pathname.includes('/admin/inquiries/edit')) return 'Inquiry / Update Status';
     if (pathname.includes('/admin/inquiries/delete')) return 'Inquiry / Delete Confirmation';
@@ -61,11 +61,6 @@ export default function AdminHeader({ onOpenMobileSidebar }) {
       </div>
 
       <div className="admin-header-right">
-        {/* SuperAdmin Role Tag */}
-        <div className="admin-superadmin-tag">
-          <Shield size={14} strokeWidth={2.5} />
-          <span>{user?.role || 'Super Admin'}</span>
-        </div>
 
         {/* Secure Logout action button */}
         <button

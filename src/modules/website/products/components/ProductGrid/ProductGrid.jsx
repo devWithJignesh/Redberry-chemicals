@@ -35,6 +35,15 @@ export function ProductGrid({ categories = [], activeFilter, onFilterChange }) {
   const [isLoading, setIsLoading] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   // Category Icon helper with Lucide icons
   const renderCategoryIcon = (slug) => {
     switch (slug?.toLowerCase()) {
@@ -54,14 +63,14 @@ export function ProductGrid({ categories = [], activeFilter, onFilterChange }) {
     }
   };
 
-  // Fetch Products from Backend API with Server-Side Pagination & Searching
+  // Fetch Products from Backend API with Server-Side Pagination & Searching (Single debounced call)
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await getProductsApi({
         page,
         limit: 9,
-        search: searchQuery.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         category: activeFilter !== 'all' ? activeFilter : undefined,
       });
 
@@ -74,7 +83,7 @@ export function ProductGrid({ categories = [], activeFilter, onFilterChange }) {
     } finally {
       setIsLoading(false);
     }
-  }, [page, searchQuery, activeFilter]);
+  }, [page, debouncedSearch, activeFilter]);
 
   useEffect(() => {
     fetchProducts();

@@ -180,23 +180,40 @@
 }
 
 /* --------------------------------------------
-   Custom Scrollbar
+   Custom Scrollbar (Small, Sleek, Modern UI)
    -------------------------------------------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-alt);
+  background: #f8fafc;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 5px;
+  border-radius: 9999px;
+  border: 1px solid #f8fafc;
+  transition: background-color 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-light);
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #0f6b4f;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* --------------------------------------------

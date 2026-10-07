@@ -60,7 +60,7 @@ export function AdminDataProvider({ children }) {
   // 4. INQUIRIES (Dynamic: loaded from API / CRUD actions)
   const [inquiries, setInquiries] = useState([]);
 
-  // Fetch sub-products, inquiries, and reviews from backend API on mount
+  // Fetch sub-products, inquiries, and reviews from backend API on mount (Single call)
   useEffect(() => {
     const fetchApiData = async () => {
       try {
@@ -74,6 +74,18 @@ export function AdminDataProvider({ children }) {
             subProdRes.data.map((item) => ({
               ...item,
               id: item._id || item.id,
+              _id: item._id || item.id,
+              productId: item.productId?._id || item.productId,
+              parentProductId: item.productId?._id || item.productId || item.parentProductId,
+              parentProductName: item.parentProductName || (typeof item.productId === 'object' ? item.productId?.name : 'Agro Chemicals'),
+              dosage: item.dosage || '',
+              packagingSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
+              packSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes.join(', ') : (item.packSizes || '100 ml, 250 ml, 500 ml'),
+              shortDescription: item.shortDescription || '',
+              description: item.description || '',
+              image: item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg',
+              images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [item.image || '/images/products/premium_dummy.jpg'],
+              status: item.status || 'Active',
             }))
           );
         }
@@ -143,38 +155,6 @@ export function AdminDataProvider({ children }) {
   const getProductById = (id) => {
     return products.find((p) => p.id === id || p.slug === id);
   };
-
-  // Fetch Sub-Products from Backend API on mount
-  useEffect(() => {
-    const fetchApiSubProducts = async () => {
-      try {
-        const res = await getSubProductsApi();
-        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const formatted = res.data.map((item) => ({
-            id: item._id || item.id,
-            _id: item._id || item.id,
-            name: item.name,
-            productId: item.productId?._id || item.productId,
-            parentProductId: item.productId?._id || item.productId,
-            parentProductName: item.parentProductName || (typeof item.productId === 'object' ? item.productId.name : 'Agro Chemicals'),
-            dosage: item.dosage || '',
-            packagingSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes : ['100 ml', '250 ml', '500 ml', '1 Litre'],
-            packSizes: Array.isArray(item.packagingSizes) ? item.packagingSizes.join(', ') : item.packagingSizes,
-            shortDescription: item.shortDescription || '',
-            description: item.description || '',
-            image: item.image || (Array.isArray(item.images) && item.images[0]) || '/images/products/premium_dummy.jpg',
-            images: Array.isArray(item.images) && item.images.length > 0 ? item.images : [item.image || '/images/products/premium_dummy.jpg'],
-            status: item.status || 'Active',
-            createdAt: item.createdAt ? item.createdAt.split('T')[0] : '2026-08-20',
-          }));
-          setSubProducts(formatted);
-        }
-      } catch (err) {
-        // Fallback to local default data
-      }
-    };
-    fetchApiSubProducts();
-  }, []);
 
   // --- CRUD: SUB-PRODUCT ---
   const addSubProduct = async (item) => {

@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
-  Package,
+  FileText,
+  Droplet,
   ListChecks,
-  UploadCloud,
   ImagePlus,
+  UploadCloud,
   Trash2,
   Star,
   ArrowLeft,
   Check,
-  Droplet,
-  Bug,
-  Tag,
-  X
+  X,
+  Plus
 } from 'lucide-react';
 import { getProductByIdApi, createProductApi, updateProductApi } from '../../../api/productApi';
 import { uploadImagesApi } from '../../../api/uploadApi';
@@ -25,9 +24,6 @@ const CATEGORIES = [
   'Fungicides',
   'Herbicides',
   'PGR & Nutrition',
-  'Biostimulants',
-  'Agriculture',
-  'Fertilizers',
 ];
 
 const categoryOptions = CATEGORIES.map((cat) => ({
@@ -72,6 +68,7 @@ export default function ProductForm() {
     images: [],
   });
 
+  const [customSizeInput, setCustomSizeInput] = useState('');
   const [errors, setErrors] = useState({});
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,7 +161,7 @@ export default function ProductForm() {
     });
   };
 
-  // Handle multiple file upload - saves files to backend assets/product/ folder
+  // Handle multiple file selection - local compression & preview ONLY (NO API call on file select)
   const handleFiles = async (files) => {
     const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
     if (validFiles.length === 0) return;
@@ -174,26 +171,16 @@ export default function ProductForm() {
       const compressionPromises = validFiles.map((file) => compressImage(file, 1000, 1000, 0.8));
       const compressedImages = await Promise.all(compressionPromises);
 
-      const uploadRes = await uploadImagesApi(compressedImages, 'product');
-      if (uploadRes && uploadRes.success && Array.isArray(uploadRes.data?.urls) && uploadRes.data.urls.length > 0) {
-        const storedUrls = uploadRes.data.urls;
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, ...storedUrls],
-        }));
-        showToast(`${storedUrls.length} ${storedUrls.length === 1 ? 'image' : 'images'} stored to assets/product folder!`, 'success');
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, ...compressedImages],
-        }));
-      }
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...compressedImages],
+      }));
 
       if (errors.images) {
         setErrors((prev) => ({ ...prev, images: '' }));
       }
     } catch (err) {
-      showToast('Error uploading image files to server folder.', 'error');
+      showToast('Error reading selected image files.', 'error');
     } finally {
       setIsUploadingImages(false);
     }
@@ -242,6 +229,18 @@ export default function ProductForm() {
     showToast('Cover photo updated!', 'success');
   };
 
+  // Add custom pack size
+  const handleAddCustomSize = () => {
+    const trimmed = customSizeInput.trim();
+    if (trimmed && !formData.packSizes.includes(trimmed)) {
+      setFormData((prev) => ({
+        ...prev,
+        packSizes: [...prev.packSizes, trimmed],
+      }));
+      setCustomSizeInput('');
+    }
+  };
+
   const validate = () => {
     const errs = {};
     if (!formData.name.trim()) errs.name = 'Product name is required.';
@@ -252,6 +251,8 @@ export default function ProductForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -289,7 +290,7 @@ export default function ProductForm() {
 
     setIsSubmitting(true);
     try {
-      // Ensure all base64 images are uploaded to project folder first
+      // Single upload API call when button is clicked (if new base64 images are present)
       let finalImages = [...formData.images];
       const base64Images = finalImages.filter((img) => typeof img === 'string' && img.startsWith('data:image/'));
       if (base64Images.length > 0) {
@@ -321,7 +322,7 @@ export default function ProductForm() {
         showToast('Product updated successfully!', 'success');
       } else {
         await createProductApi(payload);
-        showToast('Product created successfully with image URLs!', 'success');
+        showToast('Product created successfully!', 'success');
       }
       navigate('/admin/products');
     } catch (err) {
@@ -332,7 +333,7 @@ export default function ProductForm() {
   };
 
   return (
-    <div className="admin-product-form-page">
+    <div className="admin-product-form-page admin-form-page-layout">
       {/* Page Header */}
       <div className="admin-page-header">
         <div className="admin-page-title-wrap">
@@ -340,7 +341,9 @@ export default function ProductForm() {
             {isEditMode ? 'Edit Product Record' : 'Create New Product'}
           </h1>
           <p className="admin-page-subtitle">
-            {isEditMode ? `Updating catalog specification and formulation details (${id})` : 'Add a top-level agricultural product category to the master catalog'}
+            {isEditMode
+              ? `Updating catalog specification and formulation details (${id})`
+              : 'Add a top-level agricultural product category to the master catalog'}
           </p>
         </div>
         <div className="admin-page-actions">
@@ -351,96 +354,89 @@ export default function ProductForm() {
         </div>
       </div>
 
-      {/* Main Form Container */}
-      <div className="admin-form-container">
-        <form onSubmit={handleSubmit} noValidate>
-          {/* Section 1: Basic Information */}
-          <div className="admin-form-section-title">
-            <Package size={18} className="text-emerald-700" />
-            <span>Basic Product Information</span>
-          </div>
-
-          <div className="admin-form-grid-2">
-            {/* Product Name */}
-            <div className="admin-form-group">
-              <label htmlFor="prod-name" className="admin-form-label">
-                Product Name <span className="required">*</span>
-              </label>
-              <input
-                id="prod-name"
-                name="name"
-                type="text"
-                className={`admin-form-input ${errors.name ? 'error' : ''}`}
-                placeholder="e.g. Redprid Super"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-              {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
+      <form onSubmit={handleSubmit} noValidate>
+        {/* Top 2-Column Cards Grid */}
+        <div className="admin-form-two-col-cards">
+          {/* Card 1: Basic Product Information */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <FileText size={18} className="admin-form-card-icon" />
+              <span>Basic Product Information</span>
             </div>
 
-            {/* Agrochemical Category Custom Dropdown */}
+            <div className="admin-form-grid-2">
+              {/* Product Name */}
+              <div className="admin-form-group">
+                <label htmlFor="prod-name" className="admin-form-label">
+                  Product Name <span className="required">*</span>
+                </label>
+                <input
+                  id="prod-name"
+                  name="name"
+                  type="text"
+                  className={`admin-form-input ${errors.name ? 'error' : ''}`}
+                  placeholder="e.g. Redprid Super"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.name && <span className="admin-form-error-msg">{errors.name}</span>}
+              </div>
+
+              {/* Agrochemical Category Custom Dropdown */}
+              <div className="admin-form-group">
+                <label htmlFor="prod-category" className="admin-form-label">
+                  Agrochemical Category <span className="required">*</span>
+                </label>
+                <AdminSelect
+                  id="prod-category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  options={categoryOptions}
+                  placeholder="Select category..."
+                />
+              </div>
+            </div>
+
+            {/* Short Summary Textarea with char count */}
             <div className="admin-form-group">
-              <label htmlFor="prod-category" className="admin-form-label">
-                Agrochemical Category <span className="required">*</span>
+              <label htmlFor="prod-short-desc" className="admin-form-label">
+                Short Summary <span className="required">*</span>
               </label>
-              <AdminSelect
-                id="prod-category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                options={categoryOptions}
-                placeholder="Select category..."
-              />
+              <div className="admin-textarea-wrapper">
+                <textarea
+                  id="prod-short-desc"
+                  name="shortDescription"
+                  rows={4}
+                  maxLength={400}
+                  className={`admin-form-textarea ${errors.shortDescription ? 'error' : ''}`}
+                  placeholder="Brief summary for listings, cards, and catalog search."
+                  value={formData.shortDescription}
+                  onChange={handleChange}
+                  required
+                />
+                <span className="admin-char-count-badge">
+                  {formData.shortDescription.length}/400 chars
+                </span>
+              </div>
+              {errors.shortDescription && (
+                <span className="admin-form-error-msg">{errors.shortDescription}</span>
+              )}
             </div>
           </div>
 
-          {/* Short Description */}
-          <div className="admin-form-group">
-            <label htmlFor="prod-short-desc" className="admin-form-label">
-              Short Summary <span className="required">*</span>
-            </label>
-            <input
-              id="prod-short-desc"
-              name="shortDescription"
-              type="text"
-              className={`admin-form-input ${errors.shortDescription ? 'error' : ''}`}
-              placeholder="Brief summary for listings, cards, and catalog search..."
-              value={formData.shortDescription}
-              onChange={handleChange}
-              required
-            />
-            {errors.shortDescription && (
-              <span className="admin-form-error-msg">{errors.shortDescription}</span>
-            )}
-          </div>
+          {/* Card 2: Dosage, Target Pests & Packaging Specifications */}
+          <div className="admin-form-card">
+            <div className="admin-form-card-header">
+              <Droplet size={18} className="admin-form-card-icon" />
+              <span>Dosage, Target Pests &amp; Packaging Specifications</span>
+            </div>
 
-          {/* Detailed Description */}
-          <div className="admin-form-group">
-            <label htmlFor="prod-desc" className="admin-form-label">
-              Detailed Description
-            </label>
-            <RichTextEditor
-              id="prod-desc"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Provide comprehensive details about this agricultural chemical category..."
-              minHeight="180px"
-            />
-          </div>
-
-          {/* Section 2: Dosage, Target Pests & Packaging Specifications */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <Droplet size={18} className="text-emerald-700" />
-            <span>Dosage, Target Pests & Packaging Specifications</span>
-          </div>
-
-          <div className="admin-form-grid-2">
             {/* Dosage & Dilution Rate */}
             <div className="admin-form-group">
               <label htmlFor="prod-dosage" className="admin-form-label">
-                Dosage & Dilution Rate <span className="required">*</span>
+                Dosage &amp; Dilution Rate <span className="required">*</span>
               </label>
               <input
                 id="prod-dosage"
@@ -470,86 +466,109 @@ export default function ProductForm() {
                 onChange={handleChange}
               />
             </div>
-          </div>
 
-          {/* Available Packaging Sizes (Select Dropdown & Chips) */}
-          <div className="admin-form-group" style={{ marginTop: '1rem' }}>
-            <label className="admin-form-label">
-              Available Packaging Sizes (Select Dropdown)
-            </label>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-              <div style={{ flexGrow: 1 }}>
-                <AdminSelect
-                  id="pack-size-select"
-                  name="packSizeSelect"
-                  value=""
-                  onChange={(e) => {
-                    const selectedVal = e.target.value;
-                    if (selectedVal && !formData.packSizes.includes(selectedVal)) {
-                      setFormData((prev) => ({
-                        ...prev,
-                        packSizes: [...prev.packSizes, selectedVal],
-                      }));
-                    }
-                  }}
-                  options={PACKAGING_SIZE_OPTIONS.filter((opt) => !formData.packSizes.includes(opt.value))}
-                  placeholder="Select packaging size to add..."
-                />
-              </div>
-            </div>
+            {/* Available Packaging Sizes (Select Dropdown & Chips) */}
+            <div className="admin-form-group">
+              <label className="admin-form-label">
+                Available Packaging Sizes (Select Dropdown)
+              </label>
+              <AdminSelect
+                id="pack-size-select"
+                name="packSizeSelect"
+                value=""
+                onChange={(e) => {
+                  const selectedVal = e.target.value;
+                  if (selectedVal && !formData.packSizes.includes(selectedVal)) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      packSizes: [...prev.packSizes, selectedVal],
+                    }));
+                  }
+                }}
+                options={PACKAGING_SIZE_OPTIONS.filter((opt) => !formData.packSizes.includes(opt.value))}
+                placeholder="Select packaging size to add..."
+              />
 
-            {/* Selected Pack Sizes Chips */}
-            <div className="admin-selected-sizes-chips" style={{ marginTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', padding: '0.75rem', background: '#F7FAF9', border: '1px solid #DDE5E1', borderRadius: '8px', minHeight: '48px', alignItems: 'center' }}>
-              {formData.packSizes.length === 0 ? (
-                <span className="admin-no-sizes-msg" style={{ fontSize: '0.82rem', color: '#7A8983', fontStyle: 'italic' }}>
-                  No packaging sizes selected. Choose sizes from the dropdown above.
-                </span>
-              ) : (
-                formData.packSizes.map((size) => (
-                  <span key={size} className="admin-size-chip" style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    background: '#ffffff',
-                    color: '#0F6B4F',
-                    border: '1px solid #DDF5EA',
-                    padding: '0.35rem 0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '0.82rem',
-                    fontWeight: 600,
-                    boxShadow: '0 1px 2px rgba(23,43,36,0.05)'
-                  }}>
-                    <Tag size={13} />
+              {/* Selected Chips */}
+              <div className="admin-pack-chips-wrap">
+                {formData.packSizes.map((size) => (
+                  <span key={size} className="admin-pack-chip-pill">
                     <span>{size}</span>
                     <button
                       type="button"
-                      className="btn-remove-size"
+                      className="admin-pack-chip-remove"
                       onClick={() => {
                         setFormData((prev) => ({
                           ...prev,
                           packSizes: prev.packSizes.filter((s) => s !== size),
                         }));
                       }}
-                      title="Remove size"
-                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', display: 'inline-flex', padding: 0, marginLeft: '4px', color: '#0F6B4F' }}
+                      title={`Remove ${size}`}
                     >
-                      <X size={13} />
+                      <X size={14} />
                     </button>
                   </span>
-                ))
-              )}
+                ))}
+              </div>
+
+              {/* Custom Pack Size Adder Input */}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <input
+                  type="text"
+                  className="admin-form-input"
+                  placeholder="Select packaging size to add..."
+                  value={customSizeInput}
+                  onChange={(e) => setCustomSizeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomSize();
+                    }
+                  }}
+                  style={{ fontSize: '0.85rem' }}
+                />
+                {customSizeInput.trim() && (
+                  <button
+                    type="button"
+                    className="btn-admin-secondary"
+                    onClick={handleAddCustomSize}
+                    style={{ padding: '0.5rem 0.85rem' }}
+                  >
+                    <Plus size={15} />
+                    <span>Add</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Section 3: Features & Benefits */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <ListChecks size={18} style={{ color: '#0F6B4F' }} />
-            <span>Key Features & Specifications</span>
+        {/* Card 3: Descriptions & Features */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ListChecks size={18} className="admin-form-card-icon" />
+            <span>Descriptions &amp; Features</span>
           </div>
 
+          {/* Detailed Description */}
           <div className="admin-form-group">
+            <label htmlFor="prod-desc" className="admin-form-label">
+              Detailed Description
+            </label>
+            <RichTextEditor
+              id="prod-desc"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Provide comprehensive details about this agricultural chemical category."
+              minHeight="160px"
+            />
+          </div>
+
+          {/* Key Features & Benefits */}
+          <div className="admin-form-group" style={{ marginTop: '1.25rem' }}>
             <label htmlFor="prod-features" className="admin-form-label">
-              Key Features & Benefits (One bullet per line)
+              Key Features &amp; Benefits (One bullet per line)
             </label>
             <RichTextEditor
               id="prod-features"
@@ -557,18 +576,21 @@ export default function ProductForm() {
               value={formData.features}
               onChange={handleChange}
               placeholder="• Consistent, lab-verified purity&#10;• Bulk drum packaging available"
-              minHeight="180px"
+              minHeight="160px"
             />
           </div>
+        </div>
 
-          {/* Section 3: Multiple Image Upload */}
-          <div className="admin-form-section-title" style={{ marginTop: '2rem' }}>
-            <ImagePlus size={18} style={{ color: '#0F6B4F' }} />
-            <span>Product Gallery & Multiple Image Upload</span>
+        {/* Card 4: Media Gallery */}
+        <div className="admin-form-card">
+          <div className="admin-form-card-header">
+            <ImagePlus size={18} className="admin-form-card-icon" />
+            <span>Media Gallery</span>
           </div>
 
+          {/* Drag & Drop Upload Zone */}
           <div
-            className={`admin-image-upload-zone ${isDragging ? 'dragging' : ''}`}
+            className={`admin-media-dropzone-box ${isDragging ? 'dragging' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -582,40 +604,26 @@ export default function ProductForm() {
               style={{ display: 'none' }}
               onChange={handleFileInputChange}
             />
-            <div className="admin-upload-zone-content">
-              <div className="admin-upload-icon-circle">
-                <UploadCloud size={28} className={isUploadingImages ? 'animate-bounce' : ''} />
-              </div>
-              <div className="admin-upload-text">
-                {isUploadingImages ? (
-                  <>
-                    <p className="admin-upload-title" style={{ color: '#0F6B4F' }}>
-                      <strong>Uploading images to project folder...</strong>
-                    </p>
-                    <p className="admin-upload-sub">
-                      Saving image files and generating URLs for database...
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="admin-upload-title">
-                      <strong>Click to upload</strong> or drag and drop multiple images
-                    </p>
-                    <p className="admin-upload-sub">
-                      Stored on server folder (<code>assets/product/</code>) • Saved as clean URLs in DB
-                    </p>
-                  </>
-                )}
-              </div>
+            <div className="admin-media-dropzone-icon">
+              <UploadCloud size={28} className={isUploadingImages ? 'animate-bounce' : ''} />
             </div>
+            <p className="admin-media-dropzone-title">
+              <strong>Click to upload</strong> or drag and drop multiple images
+            </p>
+            <p className="admin-media-dropzone-sub">
+              Stored on server folder <code>/assets/product/1</code> - Saved as clean URLs in DB
+            </p>
           </div>
 
           {/* Uploaded Images Gallery Grid */}
           {formData.images.length > 0 && (
-            <div className="admin-uploaded-gallery-section">
+            <div className="admin-uploaded-gallery-section" style={{ marginTop: '1.5rem' }}>
               <div className="admin-gallery-header">
                 <span className="admin-gallery-count">
                   <strong>{formData.images.length}</strong> {formData.images.length === 1 ? 'image' : 'images'} uploaded
+                </span>
+                <span className="admin-gallery-note">
+                  ★ First image is used as the primary catalog cover photo
                 </span>
               </div>
 
@@ -673,19 +681,20 @@ export default function ProductForm() {
               </div>
             </div>
           )}
+        </div>
 
-          {/* Form Actions */}
-          <div className="admin-form-footer">
-            <Link to="/admin/products" className="btn-admin-secondary">
-              Cancel
-            </Link>
-            <button type="submit" className="btn-admin-primary" disabled={isSubmitting}>
-              <Check size={16} strokeWidth={2.5} />
-              <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Product' : 'Create Product'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Footer Actions Bar */}
+        <div className="admin-form-actions-bar">
+          <Link to="/admin/products" className="btn-admin-secondary">
+            Cancel
+          </Link>
+          <button type="submit" className="btn-admin-primary" disabled={isSubmitting}>
+            <Check size={16} strokeWidth={2.5} />
+            <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Product' : 'Create Product'}</span>
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
+

@@ -8,20 +8,13 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Clock,
-  ShieldCheck,
-  ChevronRight,
-  TrendingUp,
-  AlertTriangle,
-  Award,
-  FileText,
-  Building2,
-  Phone,
-  Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useAdminData } from '../../../context/AdminDataContext';
+import { DataTable, TableCellPrimary, TableStatusBadge, TableActionButton } from '../../../components/common/DataTable';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -44,8 +37,59 @@ export default function AdminDashboard() {
   const inProgressInquiries = inquiries.filter((i) => i.status === 'In Progress').length;
   const resolvedInquiries = inquiries.filter((i) => i.status === 'Resolved').length;
 
-  // Recent 4 inquiries
-  const recentInquiries = inquiries.slice(0, 4);
+  // Recent 6 inquiries
+  const recentInquiries = inquiries.slice(0, 6);
+
+  const inquiryColumns = [
+    {
+      key: 'name',
+      header: 'Sender / Client',
+      width: '30%',
+      render: (inq) => (
+        <TableCellPrimary
+          title={inq.name}
+          subtitle={inq.email || inq.phone || 'No contact info'}
+        />
+      ),
+    },
+    {
+      key: 'subject',
+      header: 'Requirement / Message',
+      width: '42%',
+      render: (inq) => (
+        <div style={{ maxWidth: '420px' }}>
+          <span style={{ fontWeight: 600, fontSize: '0.84rem', color: '#334155', display: 'block' }}>
+            {inq.subject || inq.phone || 'Product Inquiry'}
+          </span>
+          <span style={{ fontSize: '0.76rem', color: '#64748B', display: 'block', lineHeight: 1.35 }}>
+            {inq.message ? (inq.message.length > 70 ? inq.message.slice(0, 70) + '...' : inq.message) : 'No details'}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '16%',
+      render: (inq) => <TableStatusBadge status={inq.status || 'Pending'} />,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '12%',
+      align: 'right',
+      render: (inq) => (
+        <div className="dt-actions-group">
+          <TableActionButton
+            to={`/admin/inquiries/view/${inq.id || inq._id}`}
+            icon={Eye}
+            title="Review Inquiry Details"
+            variant="view"
+          />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="admin-dashboard-page">
@@ -171,239 +215,24 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Main 2-Column Live Analytics Grid */}
-      <div className="admin-dashboard-two-col">
-        {/* Left Column: Recent Dealer & Buyer Inquiries */}
-        <div className="admin-card-container" style={{ margin: 0 }}>
-          <div className="admin-card-header-bar">
-            <div>
-              <h2 className="admin-widget-title">Recent Dealer & Farmer Inquiries</h2>
-              <p className="admin-widget-sub">Latest procurement leads and agronomy support requests</p>
-            </div>
+      {/* Full-Width Recent Dealer & Farmer Inquiries using Common DataTable */}
+      <div style={{ marginTop: '1.75rem' }}>
+        <DataTable
+          title="Recent Dealer & Farmer Inquiries"
+          totalCount={inquiries.length}
+          headerRight={
             <Link to="/admin/inquiries" className="btn-admin-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
               <span>View All Leads</span>
               <ArrowRight size={13} />
             </Link>
-          </div>
-
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '32%' }}>Sender</th>
-                  <th style={{ width: '36%' }}>Subject / Requirement</th>
-                  <th style={{ width: '18%' }}>Status</th>
-                  <th style={{ width: '14%', textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentInquiries.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#7A8983' }}>
-                      No incoming inquiries recorded.
-                    </td>
-                  </tr>
-                ) : (
-                  recentInquiries.map((inq) => (
-                    <tr key={inq.id}>
-                      <td>
-                        <div>
-                          <strong style={{ display: 'block', fontSize: '0.85rem', color: '#172B24' }}>
-                            {inq.name}
-                          </strong>
-                          <span style={{ fontSize: '0.74rem', color: '#7A8983' }}>
-                            {inq.email}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div>
-                          <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#52635C', display: 'block' }}>
-                            {inq.subject}
-                          </span>
-                          <span style={{ fontSize: '0.74rem', color: '#7A8983' }}>
-                            {inq.message ? inq.message.slice(0, 48) + '...' : 'No details'}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`admin-badge ${inq.status === 'Resolved' ? 'resolved' : inq.status === 'In Progress' ? 'in-progress' : 'pending'}`}>
-                          ● {inq.status || 'Pending'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <Link
-                          to={`/admin/inquiries/edit/${inq.id}`}
-                          className="btn-table-action edit"
-                          title="Open Inquiry"
-                        >
-                          <span>Review</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Right Column: Catalog Categories & Compliance Overview */}
-        <div className="admin-dashboard-right-stack">
-          {/* Active Product Lines Card */}
-          <div className="admin-card-container" style={{ margin: 0 }}>
-            <div className="admin-card-header-bar">
-              <div>
-                <h2 className="admin-widget-title">Agrochemical Catalog Lines</h2>
-                <p className="admin-widget-sub">Primary categories and active formulations count</p>
-              </div>
-              <Link to="/admin/products" className="btn-admin-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.78rem' }}>
-                <span>Manage</span>
-              </Link>
-            </div>
-
-            <div className="admin-product-category-list">
-              {products.map((prod) => (
-                <div key={prod.id} className="admin-category-quick-item">
-                  <img
-                    src={prod.image || '/images/products/premium_dummy.jpg'}
-                    alt={prod.name}
-                    className="admin-cat-thumb"
-                    onError={(e) => {
-                      e.target.src = '/images/products/premium_dummy.jpg';
-                    }}
-                  />
-                  <div className="admin-cat-info">
-                    <span className="admin-cat-name">{prod.name}</span>
-                    <span className="admin-cat-meta">
-                      {prod.category} • {prod.features?.length || 0} Features
-                    </span>
-                  </div>
-                  <span className={`admin-badge-status ${prod.status?.toLowerCase() === 'active' ? 'active' : 'inactive'}`}>
-                    <span className="status-dot"></span>
-                    {prod.status || 'Active'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Compliance & Quality Assurance Banner */}
-          <div className="admin-compliance-card">
-            <div className="admin-compliance-header">
-              <ShieldCheck size={20} className="text-emerald-400" />
-              <span className="admin-compliance-title">Agrochemical Quality Compliance</span>
-            </div>
-            <p className="admin-compliance-text">
-              All listed product formulations strictly comply with Central Insecticides Board & Registration Committee (CIB & RC) and ISO 9001:2015 standards.
-            </p>
-            <div className="admin-compliance-badges">
-              <span className="admin-comp-pill">ISO 9001:2015</span>
-              <span className="admin-comp-pill">CIB & RC Certified</span>
-              <span className="admin-comp-pill">Lab Verified Purity</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Module Directory Section */}
-      <div className="admin-card-container" style={{ marginTop: '2rem' }}>
-        <div className="admin-card-header-bar">
-          <div>
-            <h2 className="admin-widget-title">Administration Modules Directory</h2>
-            <p className="admin-widget-sub">Direct access to manage catalog, formulations, reviews, and inquiries</p>
-          </div>
-        </div>
-
-        <div className="admin-modules-directory-grid">
-          {/* Module 1: Product Categories */}
-          <div className="admin-dir-module-card">
-            <div className="admin-dir-card-header">
-              <div className="admin-dir-icon emerald">
-                <Package size={20} />
-              </div>
-              <span className="admin-badge category">{products.length} Records</span>
-            </div>
-            <h3 className="admin-dir-title">Products Catalog</h3>
-            <p className="admin-dir-desc">
-              Manage top-level agricultural product lines, formulations, and publishing status.
-            </p>
-            <div className="admin-dir-actions">
-              <Link to="/admin/products" className="btn-table-action view" style={{ flex: 1 }}>
-                View List
-              </Link>
-              <Link to="/admin/products/add" className="btn-table-action edit" style={{ flex: 1 }}>
-                Add New
-              </Link>
-            </div>
-          </div>
-
-          {/* Module 2: Sub-Products */}
-          <div className="admin-dir-module-card">
-            <div className="admin-dir-card-header">
-              <div className="admin-dir-icon blue">
-                <FlaskConical size={20} />
-              </div>
-              <span className="admin-badge category">{subProducts.length} Records</span>
-            </div>
-            <h3 className="admin-dir-title">Sub-Product Molecules</h3>
-            <p className="admin-dir-desc">
-              Manage chemical technical molecules, dosage rates, and crop recommendations.
-            </p>
-            <div className="admin-dir-actions">
-              <Link to="/admin/sub-products" className="btn-table-action view" style={{ flex: 1 }}>
-                View List
-              </Link>
-              <Link to="/admin/sub-products/add" className="btn-table-action edit" style={{ flex: 1 }}>
-                Add New
-              </Link>
-            </div>
-          </div>
-
-          {/* Module 3: Customer Reviews */}
-          <div className="admin-dir-module-card">
-            <div className="admin-dir-card-header">
-              <div className="admin-dir-icon amber">
-                <Star size={20} />
-              </div>
-              <span className="admin-badge approved">{reviews.length} Reviews</span>
-            </div>
-            <h3 className="admin-dir-title">Customer Reviews</h3>
-            <p className="admin-dir-desc">
-              Manage verified grower testimonials, crop feedback, and public ratings.
-            </p>
-            <div className="admin-dir-actions">
-              <Link to="/admin/reviews" className="btn-table-action view" style={{ flex: 1 }}>
-                View List
-              </Link>
-              <Link to="/admin/reviews/add" className="btn-table-action edit" style={{ flex: 1 }}>
-                Add Review
-              </Link>
-            </div>
-          </div>
-
-          {/* Module 4: Inquiries */}
-          <div className="admin-dir-module-card">
-            <div className="admin-dir-card-header">
-              <div className="admin-dir-icon purple">
-                <Mail size={20} />
-              </div>
-              <span className="admin-badge pending">{pendingInquiries} Pending</span>
-            </div>
-            <h3 className="admin-dir-title">Dealer Inquiries</h3>
-            <p className="admin-dir-desc">
-              Track distributor inquiries, bulk order leads, and agronomy questions.
-            </p>
-            <div className="admin-dir-actions">
-              <Link to="/admin/inquiries" className="btn-table-action view" style={{ flex: 1 }}>
-                View Leads
-              </Link>
-              <Link to="/admin/inquiries/add" className="btn-table-action edit" style={{ flex: 1 }}>
-                Create Lead
-              </Link>
-            </div>
-          </div>
-        </div>
+          }
+          showSearch={false}
+          columns={inquiryColumns}
+          data={recentInquiries}
+          keyField="id"
+          emptyTitle="No incoming inquiries recorded"
+          emptySubtitle="Customer inquiries from the website will appear here."
+        />
       </div>
     </div>
   );
